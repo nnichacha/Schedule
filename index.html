@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule Update — Fabrication Gantt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0E14;
+    --navy:#101923;
+    --navy-2:#1A2733;
+    --steel:#5C7480;
+    --steel-light:#93A6AD;
+    --gold:#3B82F6;
+    --gold-dim:#7FB4FF;
+    --paper:#F7F5EF;
+    --card:#FFFDF9;
+    --row-alt:#F7F4EC;
+    --line:#E6E0D2;
+    --line-strong:#D6CDB8;
+    --ok:#3D7A56;
+
+    --navy-glass:
+      radial-gradient(130% 90% at 18% -25%, rgba(255,255,255,.14), transparent 55%),
+      radial-gradient(80% 60% at 100% 120%, rgba(0,0,0,.5), transparent 60%),
+      linear-gradient(160deg, #17222D 0%, #0C131A 45%, #05080B 100%);
+    --navy-glass-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.35);
+
+    --c-drawing:#E14B4B;
+    --c-material:#F2932E;
+    --c-cutting:#2FA9E8;
+    --c-fab:#F5CC2E;
+    --c-inspect:#9463D6;
+    --c-hdg:#6FC257;
+    --c-hold:#A7B4BB;
+    --c-delivery:#1EAE63;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    font-family:'Archivo','Kanit',sans-serif;
+    color:var(--ink);
+    padding:32px 20px 60px;
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:1500px;
+    margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--line-strong);
+    box-shadow:0 24px 48px -28px rgba(13,27,36,.30);
+  }
+  .top-band{height:4px; background:linear-gradient(90deg,var(--navy),var(--gold) 55%,var(--navy-2));}
+
+  /* ===== HEADER ===== */
+  .plate{
+    background:var(--navy-glass);
+    box-shadow:var(--navy-glass-shadow);
+    position:relative;
+    color:#EDF1F0;
+    padding:40px 44px 34px;
+    display:flex;
+    justify-content:space-between;
+    gap:36px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--gold);
+  }
+
+  .plate-left{min-width:300px; flex:1.4;}
+  .eyebrow{
+    font:italic 600 13px/1 'Archivo','Kanit',sans-serif;
+    letter-spacing:.04em;
+    color:var(--gold-dim);
+    margin-bottom:16px;
+  }
+
+  .proj-title{
+    font-family:'Archivo','Kanit',sans-serif;
+    font-weight:800;
+    text-transform:uppercase;
+    font-size:clamp(24px,3vw,34px);
+    letter-spacing:.005em;
+    line-height:1.15;
+    margin:0 0 24px;
+    outline:none;
+    border-bottom:1px dashed transparent;
+    color:#fff;
+  }
+  .proj-title:hover, .proj-title:focus{border-bottom-color:var(--gold);}
+
+  .meta-grid{display:grid; grid-template-columns:auto 1fr; gap:9px 14px; max-width:480px;}
+  .meta-label{
+    font:600 10px/1.6 'Archivo','Kanit',sans-serif;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--steel-light);
+  }
+  .meta-val{
+    font-size:13.5px; font-weight:500;
+    outline:none;
+    border-bottom:1px dashed transparent;
+    padding-bottom:1px;
+    color:#EAF0F3;
+  }
+  .meta-val:hover, .meta-val:focus{border-bottom-color:var(--gold-dim);}
+
+  .plate-right{
+    display:flex; align-items:stretch; gap:22px; flex-wrap:wrap;
+  }
+
+  .divider-v{width:1px; background:rgba(234,240,243,.14); align-self:stretch;}
+
+  /* gauge */
+  .gauge-wrap{text-align:center; min-width:118px;}
+  .gauge{
+    --pct:8;
+    width:104px;height:104px;border-radius:50%;
+    position:relative; margin:0 auto;
+    background:
+      radial-gradient(closest-side at 38% 30%, rgba(255,255,255,.20), transparent 45%),
+      radial-gradient(closest-side, #10191F 64%, transparent 65% 100%),
+      conic-gradient(var(--gold) calc(var(--pct)*1%), rgba(234,240,243,.14) 0);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  .gauge::after{
+    content:"";
+    position:absolute; inset:9px; border-radius:50%;
+    border:1px solid rgba(234,241,244,.18);
+  }
+  .gauge-num{
+    font-family:'Archivo','Kanit',sans-serif;
+    font-size:23px; font-weight:600; color:#fff; z-index:1;
+  }
+  .gauge-num span{font-size:12px;font-weight:500;color:var(--gold-dim);}
+  .gauge-label{
+    margin-top:9px;
+    font:600 9.5px/1 'Archivo','Kanit',sans-serif;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--steel-light);
+  }
+
+  /* status badge */
+  .status-box{
+    align-self:center;
+    min-width:150px;
+  }
+  .status-box .lbl{
+    font:600 9.5px/1 'Archivo','Kanit',sans-serif; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--steel-light); margin-bottom:8px;
+  }
+  .status-box .val{
+    font:600 20px/1.15 'IBM Plex Mono',monospace;
+    color:#fff; outline:none;
+    border-bottom:1px dashed transparent;
+  }
+  .status-box .val:hover, .status-box .val:focus{border-bottom-color:var(--gold-dim);}
+  .status-box .sub{
+    margin-top:8px; display:inline-block;
+    font:600 10px 'Archivo','Kanit',sans-serif;
+    color:var(--navy); background:var(--gold-dim);
+    padding:3px 9px; border-radius:2px; letter-spacing:.03em;
+  }
+
+  /* ===== TOOLBAR / LEGEND ===== */
+  .toolbar{
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    padding:14px 40px;
+    background:var(--card);
+    border-bottom:1px solid var(--line-strong);
+    position:sticky; top:0; z-index:5;
+  }
+  .legend{display:flex; gap:16px; flex-wrap:wrap; align-items:center;}
+  .chip{
+    display:flex; align-items:center; gap:6px;
+    padding:3px 4px 3px 2px;
+    font-size:12px; font-weight:500;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    user-select:none;
+    color:var(--ink);
+  }
+  .chip .sw{width:11px;height:11px;border-radius:2px;flex:none;}
+  .chip.active{border-bottom-color:var(--ink); font-weight:600;}
+  .chip .lbl{outline:none;}
+  .chip.erase{color:var(--steel-light); font-style:italic;}
+
+  .btn{
+    font:600 12px 'Archivo','Kanit',sans-serif;
+    border:1px solid var(--ink);
+    background:var(--ink); color:#fff;
+    padding:8px 16px; border-radius:3px;
+    cursor:pointer; letter-spacing:.02em;
+    display:inline-flex; align-items:center; gap:6px;
+    white-space:nowrap;
+  }
+  .btn.ghost{background:#fff; color:var(--ink);}
+  .btn:hover{background:var(--navy-2); border-color:var(--navy-2);}
+  .btn.ghost:hover{background:var(--paper); border-color:var(--ink);}
+
+  .toolbar-hint{
+    font:500 11.5px/1.4 'Archivo','Kanit',sans-serif;
+    color:var(--steel-light);
+  }
+  .sync-indicator{
+    font:600 11px 'IBM Plex Mono',monospace;
+    letter-spacing:.02em;
+    color:var(--steel-light);
+    white-space:nowrap;
+  }
+  .sync-indicator.live{color:var(--ok);}
+  .sync-indicator.offline{color:var(--c-material);}
+
+  .spacer{flex:1;}
+
+  .toolbar-2{
+    position:static;
+    padding-top:10px; padding-bottom:12px;
+    gap:10px;
+    background:var(--row-alt);
+  }
+  .cal-label{
+    font:italic 600 13px/1 'Archivo','Kanit',sans-serif;
+    color:var(--steel);
+  }
+  .cal-sep{
+    font:400 12.5px 'Archivo','Kanit',sans-serif;
+    color:var(--steel-light);
+  }
+  .cal-input{
+    border:none;
+    border-bottom:1px solid var(--line-strong);
+    background:transparent;
+    font:600 13px 'IBM Plex Mono',monospace;
+    color:var(--ink);
+    padding:4px 2px;
+    outline:none;
+  }
+  .cal-input:focus{border-bottom-color:var(--gold);}
+  .cal-days{width:46px; text-align:center;}
+
+  .toolbar-3{border-top:1px solid var(--line);}
+  .name-input{
+    border:none;
+    border-bottom:1px solid var(--line-strong);
+    background:transparent;
+    font:600 13px 'Archivo','Kanit',sans-serif;
+    color:var(--ink);
+    padding:4px 6px;
+    outline:none;
+  }
+  .name-input:focus{border-bottom-color:var(--gold);}
+  select.name-input{min-width:150px; cursor:pointer;}
+  input#saveNameInput.name-input{min-width:190px;}
+  .btn.small{padding:6px 12px; font-size:11.5px;}
+
+  /* ===== GANTT ===== */
+  .gantt-scroll{
+    overflow-x:auto;
+    padding:0 0 4px;
+  }
+  table.gantt{
+    border-collapse:collapse;
+    width:100%;
+    min-width:1400px;
+    font-size:13px;
+  }
+  .gantt col.fixed-no{width:44px;}
+  .gantt col.fixed-desc{width:210px;}
+  .gantt col.fixed-num{width:62px;}
+  .gantt col.fixed-wp{width:92px;}
+  .gantt col.day{width:32px;}
+
+  .gantt th, .gantt td{
+    border:1px solid var(--line);
+    padding:0;
+  }
+  .gantt thead th{
+    background:var(--navy);
+    color:#EDF1F0;
+    font:600 10.5px/1.2 'IBM Plex Mono',monospace;
+    text-align:center;
+    padding:6px 2px;
+    position:sticky; top:0; z-index:3;
+    border-color:#1D2A34;
+  }
+  .gantt thead tr.month-row th{
+    background:var(--ink);
+    font:italic 600 12px/1.2 'Archivo','Kanit',sans-serif;
+    letter-spacing:.02em;
+    padding:6px 2px;
+    border-color:#17222C;
+    color:var(--gold-dim);
+  }
+  .gantt thead th.head-static{
+    background:var(--ink);
+    text-align:left;
+    padding:9px 10px;
+    font:600 10.5px 'Archivo','Kanit',sans-serif;
+    letter-spacing:.03em;
+    position:sticky; left:0; z-index:4;
+  }
+  .gantt thead th.head-static.no{left:0; text-align:center; padding:9px 4px;}
+  .gantt thead th.head-static.desc{left:44px;}
+  .gantt thead th.head-static.ratio{left:254px; text-align:center;}
+  .gantt thead th.head-static.prog{left:316px; text-align:center;}
+  .gantt thead th.head-static.wp{left:378px; text-align:center;}
+
+  .gantt tbody tr:nth-child(even):not(.group-row){background:var(--row-alt);}
+  .gantt tbody tr:nth-child(even):not(.group-row) td.sticky{background:var(--row-alt);}
+
+  .gantt tbody td.sticky{
+    position:sticky; background:var(--card); z-index:2;
+  }
+  .gantt tbody td.no{left:0; text-align:center; font-weight:600; color:var(--steel-light); font-family:'IBM Plex Mono',monospace; font-size:12px;}
+  .gantt tbody td.desc{left:44px; font-weight:600;}
+  .gantt tbody td.ratio{left:254px; text-align:center; font-family:'IBM Plex Mono',monospace;}
+  .gantt tbody td.prog{left:316px; text-align:center; font-family:'IBM Plex Mono',monospace;}
+  .gantt tbody td.wp{left:378px; text-align:center;}
+
+  .gantt tbody tr.group-row td{
+    background:var(--navy-glass);
+    box-shadow:var(--navy-glass-shadow);
+    color:#fff; font-weight:700;
+    font-family:'Archivo','Kanit',sans-serif; letter-spacing:.02em;
+    border-color:#1A2731;
+  }
+  .gantt tbody tr.group-row td.sticky{background:var(--navy-glass);}
+  .gantt tbody tr.group-row .cell-edit{color:#fff;}
+  .gantt tbody tr.group-row .prog-val{color:var(--gold-dim);}
+
+  .cell-edit{
+    outline:none; padding:8px 10px; display:block;
+    border-bottom:1px dashed transparent;
+    min-height:1.3em;
+  }
+  .cell-edit:hover, .cell-edit:focus{border-bottom-color:var(--gold); background:rgba(173,138,68,.06);}
+  td.ratio .cell-edit, td.prog .cell-edit{padding:8px 4px;}
+
+  .wp-track{
+    position:relative; height:6px; border-radius:3px;
+    background:var(--line); margin:0 10px;
+    overflow:hidden;
+  }
+  .wp-fill{height:100%; background:var(--ok); border-radius:3px; transition:width .2s ease;}
+  .wp-text{font:600 10px 'IBM Plex Mono',monospace; text-align:center; margin-top:3px; color:var(--steel-light);}
+
+  .prog-val{
+    display:block; padding:8px 10px;
+    font-family:'IBM Plex Mono',monospace; font-weight:600;
+    color:var(--steel); cursor:default;
+  }
+
+  td.day-cell{
+    cursor:pointer;
+    transition:background .08s;
+    height:36px;
+  }
+  td.day-cell:hover{outline:1.5px solid var(--ink); outline-offset:-1.5px;}
+
+  th.weekend-col, td.day-cell.weekend{background:#F0F1F3;}
+
+  .del-row{
+    cursor:pointer; color:var(--line-strong); font-size:13px;
+    padding:0 6px; opacity:.7; float:right;
+  }
+  .del-row:hover{color:var(--c-drawing); opacity:1;}
+
+  /* ===== FOOTER ===== */
+  .footer{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    padding:24px 40px 28px; flex-wrap:wrap;
+    border-top:1px solid var(--line-strong);
+    background:var(--card);
+  }
+  .footer-note{max-width:620px;}
+  .footer-note .lbl{
+    font:600 10px/1 'Archivo','Kanit',sans-serif; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--steel-light); margin-bottom:8px;
+  }
+  .footer-note .txt{
+    outline:none; font-size:13px; line-height:1.6; color:var(--ink);
+    border-bottom:1px dashed transparent; padding:2px 0;
+  }
+  .footer-note .txt:hover, .footer-note .txt:focus{border-bottom-color:var(--gold);}
+  .sign{display:flex; gap:38px; flex-wrap:wrap;}
+  .sign-box{text-align:center;}
+  .sign-line{width:150px; border-bottom:1px solid var(--line-strong); height:36px;}
+  .sign-cap{font:600 10.5px 'Archivo','Kanit',sans-serif; color:var(--steel-light); margin-top:6px; outline:none;}
+
+  @media (max-width:760px){
+    .plate{padding:22px 20px;}
+    .toolbar{padding:12px 20px;}
+    .footer{padding:20px 20px;}
+  }
+
+  @media print{
+    @page{ size: landscape; margin:9mm; }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    body{background:#fff;padding:0;}
+    .sheet{box-shadow:none;border:none;max-width:none;}
+    .toolbar, .toolbar-2, .toolbar-3{display:none !important;}
+    .del-row{display:none !important;}
+
+    .gantt-scroll{overflow:visible;}
+    table.gantt{width:100%; min-width:0; table-layout:auto; font-size:9px;}
+    .gantt col.fixed-no{width:26px;}
+    .gantt col.fixed-desc{width:130px;}
+    .gantt col.fixed-num{width:38px;}
+    .gantt col.fixed-wp{width:54px;}
+    .gantt col.day{width:auto;}
+
+    .gantt thead th, .gantt tbody td.sticky{position:static !important;}
+    .cell-edit{padding:4px 5px !important;}
+    td.ratio .cell-edit, td.prog .cell-edit{padding:4px 2px !important;}
+    .prog-val{padding:4px 5px !important;}
+    td.day-cell{height:22px;}
+    .wp-text{font-size:8px;}
+
+    .plate{padding:20px 26px 18px;}
+    .proj-title{font-size:24px;}
+    .footer{padding:14px 26px 16px;}
+
+    thead{display:table-header-group;}
+    tr{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="top-band"></div>
+
+  <!-- HEADER -->
+  <header class="plate">
+    <div class="plate-left">
+      <div class="eyebrow">Fabrication Schedule Update</div>
+      <h1 class="proj-title cell-edit" contenteditable="true" spellcheck="false" id="projTitle">TOWER at MCB1</h1>
+
+      <div class="meta-grid">
+        <span class="meta-label">Owner</span><span class="meta-val cell-edit" contenteditable="true" id="metaOwner">ASAHI KOKUSAI TECHNEION CO., LTD</span>
+        <span class="meta-label">Contractor</span><span class="meta-val cell-edit" contenteditable="true" id="metaContractor">EMT Machinery Service CO.,LTD</span>
+        <span class="meta-label">Doc. No.</span><span class="meta-val cell-edit" contenteditable="true" id="metaDocNo">MCB1-SCH-001</span>
+      </div>
+    </div>
+
+    <div class="divider-v"></div>
+
+    <div class="plate-right">
+      <div class="gauge-wrap">
+        <div class="gauge" id="gauge">
+          <div class="gauge-num" id="gaugeNum">8<span>%</span></div>
+        </div>
+        <div class="gauge-label">Overall Progress</div>
+      </div>
+
+      <div class="status-box">
+        <div class="lbl">Last Updated</div>
+        <div class="val cell-edit" contenteditable="true" id="updateDate">30 / 07 / 2026</div>
+        <div class="sub" id="revBadge">Rev. 01</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOOLBAR / LEGEND -->
+  <div class="toolbar">
+    <div class="legend" id="legend">
+      <div class="chip active" data-color="var(--c-drawing)"><span class="sw" style="background:var(--c-drawing)"></span><span class="lbl cell-edit" contenteditable="true">Drawing</span></div>
+      <div class="chip" data-color="var(--c-material)"><span class="sw" style="background:var(--c-material)"></span><span class="lbl cell-edit" contenteditable="true">Material</span></div>
+      <div class="chip" data-color="var(--c-cutting)"><span class="sw" style="background:var(--c-cutting)"></span><span class="lbl cell-edit" contenteditable="true">Cutting</span></div>
+      <div class="chip" data-color="var(--c-fab)"><span class="sw" style="background:var(--c-fab)"></span><span class="lbl cell-edit" contenteditable="true">Fabrication</span></div>
+      <div class="chip" data-color="var(--c-inspect)"><span class="sw" style="background:var(--c-inspect)"></span><span class="lbl cell-edit" contenteditable="true">Inspection</span></div>
+      <div class="chip" data-color="var(--c-hdg)"><span class="sw" style="background:var(--c-hdg)"></span><span class="lbl cell-edit" contenteditable="true">HDG.</span></div>
+      <div class="chip" data-color="var(--c-hold)"><span class="sw" style="background:var(--c-hold)"></span><span class="lbl cell-edit" contenteditable="true">Hold</span></div>
+      <div class="chip" data-color="var(--c-delivery)"><span class="sw" style="background:var(--c-delivery)"></span><span class="lbl cell-edit" contenteditable="true">Delivery</span></div>
+      <div class="chip erase" data-color="">— ลบสี</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="addRow">+ เพิ่มงาน</button>
+    <button class="btn" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+  </div>
+
+  <div class="toolbar toolbar-2">
+    <span class="cal-label">ช่วงวันที่ในตาราง</span>
+    <input type="date" id="calStart" class="cal-input">
+    <span class="cal-sep">เป็นเวลา</span>
+    <input type="number" id="calDays" class="cal-input cal-days" min="1" max="90">
+    <span class="cal-sep">วัน</span>
+    <button class="btn ghost small" id="applyCalendar">อัปเดตปฏิทิน</button>
+  </div>
+
+  <div class="toolbar toolbar-2 toolbar-3">
+    <span class="cal-label" id="currentJobLabel">ไฟล์ปัจจุบัน: default</span>
+    <input type="text" id="saveNameInput" class="name-input" placeholder="ตั้งชื่อไฟล์งาน เช่น TOWER-MCB1">
+    <button class="btn ghost small" id="saveAsBtn">บันทึกเป็นไฟล์ใหม่</button>
+    <span class="cal-sep">|</span>
+    <select id="savedJobsSelect" class="name-input"></select>
+    <button class="btn ghost small" id="loadSavedBtn">เปิดไฟล์นี้</button>
+  </div>
+
+  <!-- GANTT -->
+  <div class="gantt-scroll">
+    <table class="gantt" id="ganttTable">
+      <colgroup id="colgroup">
+        <col class="fixed-no"><col class="fixed-desc"><col class="fixed-num"><col class="fixed-num"><col class="fixed-wp">
+      </colgroup>
+      <thead>
+        <tr class="month-row" id="monthRow">
+          <th class="head-static no" rowspan="3">No.</th>
+          <th class="head-static desc" rowspan="3">Description</th>
+          <th class="head-static ratio" rowspan="3">Ratio</th>
+          <th class="head-static prog" rowspan="3">Progress</th>
+          <th class="head-static wp" rowspan="3">Work Progress</th>
+        </tr>
+        <tr id="dayNumRow"></tr>
+        <tr id="dayDateRow"></tr>
+      </thead>
+      <tbody id="ganttBody">
+        <tr class="group-row">
+          <td class="sticky no"></td>
+          <td class="sticky desc cell-edit" contenteditable="true">Tower at MCB1</td>
+          <td class="sticky ratio"><span class="cell-edit" contenteditable="true" id="overallRatioCell">100%</span></td>
+          <td class="sticky prog"><span class="cell-edit" contenteditable="true" id="overallProgCell">8%</span></td>
+          <td class="sticky wp"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-note">
+      <div class="lbl">หมายเหตุ / Remark</div>
+      <div class="txt cell-edit" contenteditable="true" id="remarkText">งาน Drawing อยู่ระหว่างรออนุมัติจากลูกค้า คาดว่าจะเริ่มงาน Cutting + Bending ได้ตามแผนที่วางไว้</div>
+    </div>
+    <div class="sign">
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <div class="sign-cap cell-edit" contenteditable="true" id="signPrepared">Prepared by</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <div class="sign-cap cell-edit" contenteditable="true" id="signApproved">Approved by</div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+let TOTAL_DAYS = 32;
+let START_DATE = new Date(2026, 6, 20); // 20 Jul 2026 — changeable via the calendar control
+const THAI_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+
+const ROWS = [
+  {no:1, desc:"Drawing", ratio:"10%", prog:"0%", wp:0, start:1, len:6, color:"var(--c-drawing)"},
+  {no:2, desc:"Material", ratio:"5%", prog:"5%", wp:100, start:7, len:4, color:"var(--c-material)"},
+  {no:3, desc:"Cutting + Bending", ratio:"5%", prog:"3%", wp:50, start:11, len:8, color:"var(--c-cutting)"},
+  {no:5, desc:"Fit-up", ratio:"20%", prog:"0%", wp:0, start:12, len:4, color:"var(--c-fab)"},
+  {no:6, desc:"Welding", ratio:"40%", prog:"0%", wp:0, start:15, len:6, color:"var(--c-fab)"},
+  {no:7, desc:"HDG.", ratio:"10%", prog:"0%", wp:0, start:21, len:6, color:"var(--c-hdg)"},
+  {no:8, desc:"Final Inspection", ratio:"5%", prog:"0%", wp:0, start:27, len:2, color:"var(--c-inspect)"},
+  {no:9, desc:"Delivery", ratio:"5%", prog:"0%", wp:0, start:29, len:2, color:"var(--c-delivery)"},
+];
+
+let selectedColor = "var(--c-drawing)";
+
+/* ---------------- BUILD DAY HEADERS ---------------- */
+const colgroup = document.getElementById('colgroup');
+const monthRow = document.getElementById('monthRow');
+const dayNumRow = document.getElementById('dayNumRow');
+const dayDateRow = document.getElementById('dayDateRow');
+
+function dateForDay(i){
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + (i-1));
+  return d;
+}
+
+function fmtISO(d){
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+/* Rebuild the calendar header (month row / day numbers / dates / <col>s)
+   from the current START_DATE + TOTAL_DAYS. Safe to call again later. */
+function buildDayHeaders(){
+  colgroup.querySelectorAll('col.day').forEach(c => c.remove());
+  Array.from(monthRow.children).forEach(th => { if(!th.classList.contains('head-static')) th.remove(); });
+  dayNumRow.innerHTML = '';
+  dayDateRow.innerHTML = '';
+
+  let lastMonth = null;
+  let monthSpanTh = null;
+  for(let i=1;i<=TOTAL_DAYS;i++){
+    const col = document.createElement('col');
+    col.className = 'day';
+    colgroup.appendChild(col);
+
+    const d = dateForDay(i);
+    const m = d.getMonth();
+    if(m !== lastMonth){
+      monthSpanTh = document.createElement('th');
+      monthSpanTh.textContent = THAI_MONTHS[m];
+      monthSpanTh.colSpan = 1;
+      monthRow.appendChild(monthSpanTh);
+      lastMonth = m;
+    } else {
+      monthSpanTh.colSpan += 1;
+    }
+
+    const thNum = document.createElement('th');
+    thNum.textContent = i;
+    if(d.getDay()===0 || d.getDay()===6) thNum.classList.add('weekend-col');
+    dayNumRow.appendChild(thNum);
+
+    const thDate = document.createElement('th');
+    thDate.textContent = d.getDate()+'-'+THAI_MONTHS[m];
+    if(d.getDay()===0 || d.getDay()===6) thDate.classList.add('weekend-col');
+    dayDateRow.appendChild(thDate);
+  }
+
+  const calStartEl = document.getElementById('calStart');
+  const calDaysEl = document.getElementById('calDays');
+  if(calStartEl) calStartEl.value = fmtISO(START_DATE);
+  if(calDaysEl) calDaysEl.value = TOTAL_DAYS;
+}
+
+buildDayHeaders();
+
+/* ---------------- BUILD ROWS ---------------- */
+const tbody = document.getElementById('ganttBody');
+
+function makeRow(row){
+  const tr = document.createElement('tr');
+  tr.dataset.no = row.no;
+
+  const wpNum = pctToNum(row.wp);
+  const ratioNum = pctToNum(row.ratio);
+  const progNum = Math.round(ratioNum * wpNum / 100);
+
+  tr.innerHTML = `
+    <td class="sticky no">
+      <span class="cell-edit" contenteditable="true" style="display:inline-block;padding:8px 4px;">${row.no}</span>
+      <span class="del-row" title="ลบแถวนี้">✕</span>
+    </td>
+    <td class="sticky desc"><span class="cell-edit" contenteditable="true">${row.desc}</span></td>
+    <td class="sticky ratio"><span class="cell-edit ratio-val" contenteditable="true">${row.ratio}</span></td>
+    <td class="sticky prog"><span class="prog-val" title="คำนวณอัตโนมัติ = Ratio × Work Progress">${progNum}%</span></td>
+    <td class="sticky wp">
+      <div class="wp-track"><div class="wp-fill" style="width:${wpNum}%"></div></div>
+      <div class="wp-text cell-edit" contenteditable="true">${wpNum}%</div>
+    </td>
+  `;
+
+  rebuildRowDays(tr, row.cells, row);
+
+  tr.querySelector('.del-row').addEventListener('click', ()=>{
+    if(confirm('ลบงานนี้ออกจากตารางใช่หรือไม่?')){ tr.remove(); recalcOverall(); save(); }
+  });
+
+  return tr;
+}
+
+/* Build/rebuild the day-cell <td>s for a row against the current TOTAL_DAYS.
+   Pass an explicit `cells` array to restore exact colors (from save/load),
+   or a `rangeRow` ({start,len,color}) to paint one continuous range,
+   or neither to produce a blank row (used when the calendar range changes). */
+function rebuildRowDays(tr, cells, rangeRow){
+  tr.querySelectorAll('td.day-cell').forEach(td => td.remove());
+  for(let i=1;i<=TOTAL_DAYS;i++){
+    const td = document.createElement('td');
+    td.className = 'day-cell';
+    const d = dateForDay(i);
+    if(d.getDay()===0 || d.getDay()===6) td.classList.add('weekend');
+
+    let color = null;
+    if(cells){
+      color = cells[i-1] || null;
+    } else if(rangeRow && rangeRow.start && i >= rangeRow.start && i < rangeRow.start + rangeRow.len){
+      color = rangeRow.color;
+    }
+    if(color){
+      td.style.background = color;
+      td.dataset.painted = color;
+    }
+    td.addEventListener('click', ()=>{ paintCell(td); save(); });
+    tr.appendChild(td);
+  }
+}
+
+/* Recompute a row's Progress (= Ratio × Work Progress ÷ 100) and the WP bar,
+   then roll everything up into the overall gauge. */
+function updateRowCalc(tr){
+  const ratio = pctToNum(tr.querySelector('.ratio-val').textContent);
+  const wpEl = tr.querySelector('.wp-text');
+  let wp = pctToNum(wpEl.textContent);
+  wp = Math.min(100, Math.max(0, wp));
+  wpEl.textContent = wp + '%';
+  tr.querySelector('.wp-fill').style.width = wp + '%';
+  const prog = Math.round(ratio * wp / 100);
+  tr.querySelector('.prog-val').textContent = prog + '%';
+  recalcOverall();
+  save();
+}
+
+function paintCell(td){
+  if(selectedColor === ""){
+    td.style.background = "";
+    td.dataset.painted = "";
+    return;
+  }
+  const isSame = td.dataset.painted === selectedColor;
+  td.style.background = isSame ? "" : selectedColor;
+  td.dataset.painted = isSame ? "" : selectedColor;
+}
+
+/* ---------------- LEGEND SELECT ---------------- */
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('lbl')) return;
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    selectedColor = chip.dataset.color;
+  });
+});
+
+/* ---------------- ADD ROW ---------------- */
+document.getElementById('addRow').addEventListener('click', ()=>{
+  const maxNo = Math.max(0, ...Array.from(tbody.querySelectorAll('tr[data-no]')).map(r=>+r.dataset.no || 0));
+  const newRow = {no:maxNo+1, desc:"New Task", ratio:"0%", prog:"0%", wp:"0%", start:0, len:0, color:selectedColor};
+  tbody.appendChild(makeRow(newRow));
+  recalcOverall();
+  save();
+});
+
+/* ---------------- CALENDAR RANGE CONTROL ---------------- */
+document.getElementById('applyCalendar').addEventListener('click', ()=>{
+  const startVal = document.getElementById('calStart').value;
+  const daysVal = parseInt(document.getElementById('calDays').value, 10);
+  if(!startVal || !daysVal || daysVal < 1){
+    alert('กรุณาระบุวันที่เริ่มต้นและจำนวนวันให้ถูกต้อง');
+    return;
+  }
+  const hasRows = tbody.querySelectorAll('tr[data-no]').length > 0;
+  if(hasRows && !confirm('การเปลี่ยนช่วงวันที่จะล้างสีสถานะที่ทาไว้ในตารางทั้งหมด (ชื่องาน/Ratio/Progress ยังอยู่ครบ) ต้องการดำเนินการต่อหรือไม่?')){
+    return;
+  }
+  START_DATE = parseISO(startVal);
+  TOTAL_DAYS = daysVal;
+  buildDayHeaders();
+  tbody.querySelectorAll('tr[data-no]').forEach(tr => rebuildRowDays(tr, null, null));
+  recalcOverall();
+  save();
+});
+
+/* ---------------- OVERALL PROGRESS CALC ---------------- */
+function pctToNum(str){
+  const n = parseFloat((str||'0').toString().replace('%','').trim());
+  return isNaN(n) ? 0 : n;
+}
+
+function recalcOverall(){
+  let sum = 0;
+  tbody.querySelectorAll('tr[data-no]').forEach(tr=>{
+    sum += pctToNum(tr.querySelector('.prog-val').textContent);
+  });
+  sum = Math.round(sum * 10) / 10;
+  document.getElementById('gaugeNum').innerHTML = sum + '<span>%</span>';
+  document.getElementById('gauge').style.setProperty('--pct', sum);
+  document.getElementById('overallProgCell').textContent = sum + '%';
+}
+
+/* ================= NAMED JOB SLOTS (shared persistent storage) ================= */
+const STORAGE_PREFIX = 'schedule-job-';
+let CURRENT_KEY = 'default';
+const hasStorage = (typeof window.storage !== 'undefined' && window.storage);
+
+function sanitizeKey(name){
+  return name.trim().replace(/\s+/g,'-').replace(/[\/\\'"]/g,'');
+}
+function fullKey(k){ return STORAGE_PREFIX + k; }
+
+function setCurrentJobLabel(){
+  const el = document.getElementById('currentJobLabel');
+  if(el) el.textContent = 'ไฟล์ปัจจุบัน: ' + CURRENT_KEY;
+}
+
+async function refreshSavedList(){
+  const sel = document.getElementById('savedJobsSelect');
+  if(!sel) return;
+  sel.innerHTML = '';
+  if(!hasStorage) return;
+  try{
+    const res = await window.storage.list(STORAGE_PREFIX, true);
+    (res && res.keys || []).forEach(k=>{
+      const label = k.startsWith(STORAGE_PREFIX) ? k.slice(STORAGE_PREFIX.length) : k;
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = label;
+      if(label === CURRENT_KEY) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }catch(err){ /* no saved jobs yet */ }
+}
+
+function serialize(){
+  const rows = Array.from(tbody.querySelectorAll('tr[data-no]')).map(tr=>{
+    const cells = Array.from(tr.querySelectorAll('td.day-cell')).map(td => td.dataset.painted || null);
+    return {
+      no: tr.querySelector('.no .cell-edit').textContent.trim(),
+      desc: tr.querySelector('.desc .cell-edit').textContent.trim(),
+      ratio: tr.querySelector('.ratio-val').textContent.trim(),
+      prog: tr.querySelector('.prog-val').textContent.trim(),
+      wp: tr.querySelector('.wp-text').textContent.trim(),
+      cells
+    };
+  });
+  return {
+    title: document.getElementById('projTitle').textContent.trim(),
+    owner: document.getElementById('metaOwner').textContent.trim(),
+    contractor: document.getElementById('metaContractor').textContent.trim(),
+    docNo: document.getElementById('metaDocNo').textContent.trim(),
+    updateDate: document.getElementById('updateDate').textContent.trim(),
+    rev: document.getElementById('revBadge').textContent.trim(),
+    overallRatio: document.getElementById('overallRatioCell').textContent.trim(),
+    remark: document.getElementById('remarkText').textContent.trim(),
+    signPrepared: document.getElementById('signPrepared').textContent.trim(),
+    signApproved: document.getElementById('signApproved').textContent.trim(),
+    legend: Array.from(document.querySelectorAll('#legend .chip .lbl')).map(el=>el.textContent.trim()),
+    startDate: fmtISO(START_DATE),
+    totalDays: TOTAL_DAYS,
+    rows
+  };
+}
+
+function parseISO(str){
+  const [y,m,d] = str.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function applyData(data){
+  document.getElementById('projTitle').textContent = data.title ?? 'TOWER at MCB1';
+  document.getElementById('metaOwner').textContent = data.owner ?? '';
+  document.getElementById('metaContractor').textContent = data.contractor ?? '';
+  document.getElementById('metaDocNo').textContent = data.docNo ?? '';
+  document.getElementById('updateDate').textContent = data.updateDate ?? '';
+  document.getElementById('revBadge').textContent = data.rev ?? 'Rev. 01';
+  document.getElementById('overallRatioCell').textContent = data.overallRatio ?? '100%';
+  document.getElementById('remarkText').textContent = data.remark ?? '';
+  document.getElementById('signPrepared').textContent = data.signPrepared ?? 'Prepared by';
+  document.getElementById('signApproved').textContent = data.signApproved ?? 'Approved by';
+
+  const lblEls = document.querySelectorAll('#legend .chip .lbl');
+  (data.legend || []).forEach((txt,i)=>{ if(lblEls[i]) lblEls[i].textContent = txt; });
+
+  if(data.startDate) START_DATE = parseISO(data.startDate);
+  if(data.totalDays) TOTAL_DAYS = data.totalDays;
+  buildDayHeaders();
+
+  tbody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
+  (data.rows || []).forEach(r => tbody.appendChild(makeRow(r)));
+
+  recalcOverall();
+}
+
+let saveTimer = null;
+function save(immediate){
+  if(!hasStorage) return Promise.resolve();
+  const run = async ()=>{
+    try{
+      const data = serialize();
+      await window.storage.set(fullKey(CURRENT_KEY), JSON.stringify(data), true);
+    }catch(err){ /* best-effort */ }
+  };
+  if(immediate) return run();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(run, 250);
+  return Promise.resolve();
+}
+
+/* Save on any edit to a contenteditable field (blur doesn't bubble, use capture) */
+document.addEventListener('blur', function(e){
+  const t = e.target;
+  if(!t || !t.classList || !t.classList.contains('cell-edit')) return;
+
+  if(t.classList.contains('ratio-val') || t.classList.contains('wp-text')){
+    const tr = t.closest('tr[data-no]');
+    if(tr){ updateRowCalc(tr); return; } // recalculates Progress, overall gauge, and saves
+  }
+  save();
+}, true);
+
+/* ---- Save As / Open saved job ---- */
+document.getElementById('saveAsBtn').addEventListener('click', async ()=>{
+  const nameInput = document.getElementById('saveNameInput');
+  const name = (nameInput.value || '').trim();
+  if(!name){ alert('กรุณาตั้งชื่อไฟล์งานก่อนบันทึก'); return; }
+  const key = sanitizeKey(name);
+  if(!key){ alert('ชื่อไฟล์งานไม่ถูกต้อง'); return; }
+
+  if(hasStorage){
+    try{
+      const existing = await window.storage.get(fullKey(key), true);
+      if(existing && existing.value){
+        if(!confirm('มีไฟล์งานชื่อ "'+key+'" อยู่แล้ว ต้องการบันทึกทับหรือไม่?')) return;
+      }
+    }catch(err){ /* doesn't exist yet — fine */ }
+  }
+
+  CURRENT_KEY = key;
+  await save(true);
+  setCurrentJobLabel();
+  nameInput.value = '';
+  refreshSavedList();
+});
+
+document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
+  const sel = document.getElementById('savedJobsSelect');
+  const key = sel.value;
+  if(!key) { alert('ยังไม่มีไฟล์งานที่บันทึกไว้'); return; }
+  if(!hasStorage) return;
+  try{
+    const res = await window.storage.get(key, true);
+    if(res && res.value){
+      CURRENT_KEY = key.startsWith(STORAGE_PREFIX) ? key.slice(STORAGE_PREFIX.length) : key;
+      applyData(JSON.parse(res.value));
+      setCurrentJobLabel();
+    }
+  }catch(err){
+    alert('ไม่พบข้อมูลของไฟล์งานนี้');
+  }
+});
+
+async function init(){
+  if(hasStorage){
+    try{
+      const res = await window.storage.get(fullKey(CURRENT_KEY), true);
+      if(res && res.value){
+        applyData(JSON.parse(res.value));
+        setCurrentJobLabel();
+        refreshSavedList();
+        return;
+      }
+    }catch(err){ /* no saved record yet for 'default' */ }
+  }
+  // fall back to the default template
+  ROWS.forEach(r => tbody.appendChild(makeRow(r)));
+  recalcOverall();
+  setCurrentJobLabel();
+  save(true);
+  refreshSavedList();
+}
+
+init();
+</script>
+
+</body>
+</html>
