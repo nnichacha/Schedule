@@ -6,6 +6,8 @@
 <title>Schedule Update — Fabrication Gantt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <style>
   :root{
     --ink:#0A0E14;
@@ -793,19 +795,40 @@ function recalcOverall(){
   document.getElementById('overallProgCell').textContent = sum + '%';
 }
 
-/* ================= NAMED JOB SLOTS (shared persistent storage) ================= */
-const STORAGE_PREFIX = 'schedule-job-';
+/* ================= FIREBASE SETUP ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB6Tzu2kTRULZ1s-oGAd7xZIYpqdXUqp9w",
+  authDomain: "sales-nicha.firebaseapp.com",
+  databaseURL: "https://sales-nicha-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sales-nicha",
+  storageBucket: "sales-nicha.firebasestorage.app",
+  messagingSenderId: "934539052951",
+  appId: "1:934539052951:web:9ea2ba64a6c27f928c66d2",
+  measurementId: "G-9QVV9PNQEL"
+};
+
+let db = null;
+let hasStorage = false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  hasStorage = true;
+}catch(err){
+  hasStorage = false;
+}
+
+/* ================= NAMED JOB SLOTS (Firebase-backed persistence) ================= */
+const JOBS_PATH = 'schedule-jobs';
 let CURRENT_KEY = 'default';
-const hasStorage = (typeof window.storage !== 'undefined' && window.storage);
 
 function sanitizeKey(name){
-  return name.trim().replace(/\s+/g,'-').replace(/[\/\\'"]/g,'');
+  return name.trim().replace(/\s+/g,'-').replace(/[.#$\/\[\]'"]/g,'');
 }
-function fullKey(k){ return STORAGE_PREFIX + k; }
+function jobPath(k){ return JOBS_PATH + '/' + k; }
 
 function setCurrentJobLabel(){
   const el = document.getElementById('currentJobLabel');
-  if(el) el.textContent = 'ไฟล์ปัจจุบัน: ' + CURRENT_KEY;
+  if(el) el.textContent = 'ไฟล์ปัจจุบัน: ' + CURRENT_KEY + (hasStorage ? '' : ' (ยังไม่ได้เชื่อมต่อฐานข้อมูล)');
 }
 
 async function refreshSavedList(){
@@ -814,16 +837,21 @@ async function refreshSavedList(){
   sel.innerHTML = '';
   if(!hasStorage) return;
   try{
-    const res = await window.storage.list(STORAGE_PREFIX, true);
-    (res && res.keys || []).forEach(k=>{
-      const label = k.startsWith(STORAGE_PREFIX) ? k.slice(STORAGE_PREFIX.length) : k;
+    const snap = await db.ref(JOBS_PATH).once('value');
+    const val = snap.val() || {};
+    Object.keys(val).forEach(key=>{
       const opt = document.createElement('option');
-      opt.value = k; opt.textContent = label;
-      if(label === CURRENT_KEY) opt.selected = true;
+      opt.value = key; opt.textContent = key;
+      if(key === CURRENT_KEY) opt.selected = true;
       sel.appendChild(opt);
     });
-  }catch(err){ /* no saved jobs yet */ }
+  }catch(err){ /* no saved jobs yet, or rules block read */ }
 }
+
+/* cells arrays contain lots of nulls (unpainted days) — Firebase RTDB compacts
+   null-holed arrays unpredictably, so we encode/decode as a '|'-joined string. */
+function encodeCells(cells){ return cells.map(c => c || '').join('|'); }
+function decodeCells(str){ return (str || '').split('|').map(s => s || null); }
 
 function serialize(){
   const rows = Array.from(tbody.querySelectorAll('tr[data-no]')).map(tr=>{
@@ -834,7 +862,7 @@ function serialize(){
       ratio: tr.querySelector('.ratio-val').textContent.trim(),
       prog: tr.querySelector('.prog-val').textContent.trim(),
       wp: tr.querySelector('.wp-text').textContent.trim(),
-      cells
+      cells: encodeCells(cells)
     };
   });
   return {
@@ -880,7 +908,7 @@ function applyData(data){
   buildDayHeaders();
 
   tbody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
-  (data.rows || []).forEach(r => tbody.appendChild(makeRow(r)));
+  (data.rows || []).forEach(r => tbody.appendChild(makeRow({...r, cells: decodeCells(r.cells)})));
 
   recalcOverall();
 }
@@ -890,9 +918,8 @@ function save(immediate){
   if(!hasStorage) return Promise.resolve();
   const run = async ()=>{
     try{
-      const data = serialize();
-      await window.storage.set(fullKey(CURRENT_KEY), JSON.stringify(data), true);
-    }catch(err){ /* best-effort */ }
+      await db.ref(jobPath(CURRENT_KEY)).set(serialize());
+    }catch(err){ /* best-effort — check Firebase rules if this keeps failing */ }
   };
   if(immediate) return run();
   clearTimeout(saveTimer);
@@ -914,20 +941,19 @@ document.addEventListener('blur', function(e){
 
 /* ---- Save As / Open saved job ---- */
 document.getElementById('saveAsBtn').addEventListener('click', async ()=>{
+  if(!hasStorage){ alert('ยังไม่ได้เชื่อมต่อฐานข้อมูล Firebase — กรุณาใส่ค่า firebaseConfig ในโค้ดก่อน'); return; }
   const nameInput = document.getElementById('saveNameInput');
   const name = (nameInput.value || '').trim();
   if(!name){ alert('กรุณาตั้งชื่อไฟล์งานก่อนบันทึก'); return; }
   const key = sanitizeKey(name);
   if(!key){ alert('ชื่อไฟล์งานไม่ถูกต้อง'); return; }
 
-  if(hasStorage){
-    try{
-      const existing = await window.storage.get(fullKey(key), true);
-      if(existing && existing.value){
-        if(!confirm('มีไฟล์งานชื่อ "'+key+'" อยู่แล้ว ต้องการบันทึกทับหรือไม่?')) return;
-      }
-    }catch(err){ /* doesn't exist yet — fine */ }
-  }
+  try{
+    const snap = await db.ref(jobPath(key)).once('value');
+    if(snap.exists()){
+      if(!confirm('มีไฟล์งานชื่อ "'+key+'" อยู่แล้ว ต้องการบันทึกทับหรือไม่?')) return;
+    }
+  }catch(err){ /* read blocked or doesn't exist — proceed to write */ }
 
   CURRENT_KEY = key;
   await save(true);
@@ -937,33 +963,35 @@ document.getElementById('saveAsBtn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
+  if(!hasStorage) return;
   const sel = document.getElementById('savedJobsSelect');
   const key = sel.value;
   if(!key) { alert('ยังไม่มีไฟล์งานที่บันทึกไว้'); return; }
-  if(!hasStorage) return;
   try{
-    const res = await window.storage.get(key, true);
-    if(res && res.value){
-      CURRENT_KEY = key.startsWith(STORAGE_PREFIX) ? key.slice(STORAGE_PREFIX.length) : key;
-      applyData(JSON.parse(res.value));
+    const snap = await db.ref(jobPath(key)).once('value');
+    if(snap.exists()){
+      CURRENT_KEY = key;
+      applyData(snap.val());
       setCurrentJobLabel();
+    }else{
+      alert('ไม่พบข้อมูลของไฟล์งานนี้');
     }
   }catch(err){
-    alert('ไม่พบข้อมูลของไฟล์งานนี้');
+    alert('โหลดข้อมูลไม่สำเร็จ ตรวจสอบ Firebase rules / การเชื่อมต่อ');
   }
 });
 
 async function init(){
   if(hasStorage){
     try{
-      const res = await window.storage.get(fullKey(CURRENT_KEY), true);
-      if(res && res.value){
-        applyData(JSON.parse(res.value));
+      const snap = await db.ref(jobPath(CURRENT_KEY)).once('value');
+      if(snap.exists()){
+        applyData(snap.val());
         setCurrentJobLabel();
         refreshSavedList();
         return;
       }
-    }catch(err){ /* no saved record yet for 'default' */ }
+    }catch(err){ /* no saved record yet, or rules blocked read */ }
   }
   // fall back to the default template
   ROWS.forEach(r => tbody.appendChild(makeRow(r)));
