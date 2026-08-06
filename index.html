@@ -234,6 +234,29 @@
   .btn:hover{background:var(--navy-2); border-color:var(--navy-2);}
   .btn.ghost:hover{background:var(--paper); border-color:var(--ink);}
 
+  .publish-time{
+    font:500 11px 'IBM Plex Mono',monospace;
+    color:var(--steel-light);
+    white-space:nowrap;
+  }
+  .btn.publish-btn{
+    background:var(--ok); border-color:var(--ok);
+    position:relative;
+  }
+  .btn.publish-btn:hover{background:#276B47; border-color:#276B47;}
+  .btn.publish-btn.dirty{
+    background:var(--c-material); border-color:var(--c-material);
+    animation:publishPulse 1.6s ease-in-out infinite;
+  }
+  .btn.publish-btn.dirty::after{
+    content:"●"; margin-left:6px; font-size:9px; vertical-align:middle;
+  }
+  @keyframes publishPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(242,147,46,.45);}
+    50%{box-shadow:0 0 0 6px rgba(242,147,46,0);}
+  }
+  body.read-only .publish-time, body.read-only #publishBtn{display:none !important;}
+
   .toolbar-hint{
     font:500 11.5px/1.4 'Archivo','Kanit',sans-serif;
     color:var(--steel-light);
@@ -296,7 +319,8 @@
     padding:0 0 4px;
   }
   table.gantt{
-    border-collapse:collapse;
+    border-collapse:separate;
+    border-spacing:0;
     width:100%;
     min-width:1400px;
     font-size:13px;
@@ -308,8 +332,16 @@
   .gantt col.day{width:32px;}
 
   .gantt th, .gantt td{
-    border:1px solid var(--line);
+    border:none;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
     padding:0;
+  }
+  .gantt th.head-static.no, .gantt td.no{
+    border-left:1px solid var(--line);
+  }
+  .gantt thead tr:first-child th{
+    border-top:1px solid var(--line);
   }
   .gantt thead th{
     background:var(--navy);
@@ -318,14 +350,16 @@
     text-align:center;
     padding:6px 2px;
     position:sticky; top:0; z-index:3;
-    border-color:#1D2A34;
+    border-right-color:#1D2A34;
+    border-bottom-color:#1D2A34;
   }
   .gantt thead tr.month-row th{
     background:var(--ink);
     font:italic 600 12px/1.2 'Archivo','Kanit',sans-serif;
     letter-spacing:.02em;
     padding:6px 2px;
-    border-color:#17222C;
+    border-right-color:#17222C;
+    border-bottom-color:#17222C;
     color:var(--gold-dim);
   }
   .gantt thead th.head-static{
@@ -480,20 +514,23 @@
     margin-top:12px; min-height:16px;
   }
 
-  /* ===== CURRENT STATUS BANNER ===== */
-  .status-banner{
-    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
-    padding:18px 40px;
+  /* ===== PROGRESS TIMELINE ===== */
+  .timeline-panel{
+    padding:26px 40px 24px;
     background:var(--card);
     border-bottom:1px solid var(--line-strong);
   }
-  .status-banner .sb-label{
-    font:700 11px 'Archivo','Kanit',sans-serif;
-    letter-spacing:.1em; text-transform:uppercase;
-    color:var(--steel); flex:none;
+  .tl-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:14px; flex-wrap:wrap; margin-bottom:24px;
   }
+  .tl-title{
+    font:700 12px 'Archivo','Kanit',sans-serif;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--steel);
+  }
+  .tl-meta{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
   .status-tag{
-    font:700 11.5px 'Archivo','Kanit',sans-serif;
+    font:700 11px 'Archivo','Kanit',sans-serif;
     padding:6px 14px; border-radius:20px;
     text-transform:uppercase; letter-spacing:.03em;
     border:none; outline:none; cursor:pointer;
@@ -503,20 +540,125 @@
   .status-tag[data-tag="delayed"]{background:#FEF3C7; color:#92400E;}
   .status-tag[data-tag="hold"]{background:#F1F5F9; color:#475569;}
   .status-tag[data-tag="done"]{background:#DBEAFE; color:#1E40AF;}
-  .status-text{
-    flex:1; min-width:220px;
-    font:500 14px 'Archivo','Kanit',sans-serif;
-    color:var(--ink);
-    outline:none;
-    border-bottom:1px dashed transparent;
-    padding:2px 0;
-  }
-  .status-text:hover, .status-text:focus{border-bottom-color:var(--gold);}
   .status-time{
-    flex:none;
-    font:500 11.5px 'IBM Plex Mono',monospace;
+    font:500 11px 'IBM Plex Mono',monospace;
     color:var(--steel-light);
   }
+  .client-badge{margin-left:0;}
+
+  .tl-track{
+    display:flex; align-items:flex-start;
+    padding:0 6px;
+  }
+  .tl-stage{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center;
+    flex:1; min-width:0;
+    cursor:pointer;
+  }
+  .tl-stage:not(:last-child)::after{
+    content:"";
+    position:absolute; top:17px; left:50%; width:100%; height:3px;
+    background:var(--line-strong); z-index:0;
+  }
+  .tl-stage.completed:not(:last-child)::after{background:var(--gold);}
+
+  .tl-dot{
+    position:relative; z-index:1;
+    width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:#fff; border:3px solid var(--line-strong);
+    font:700 13px 'Archivo','Kanit',sans-serif; color:var(--steel-light);
+    transition:.15s ease;
+  }
+  .tl-stage.completed .tl-dot{background:var(--gold); border-color:var(--gold); color:#fff;}
+  .tl-stage.current .tl-dot{
+    width:40px; height:40px;
+    background:var(--ink); border-color:var(--gold); color:var(--gold-dim);
+    box-shadow:0 0 0 5px rgba(59,130,246,.16);
+  }
+
+  .tl-name{
+    margin-top:11px;
+    font:700 11.5px 'Archivo','Kanit',sans-serif;
+    color:var(--ink); text-align:center;
+    outline:none; border-bottom:1px dashed transparent; padding:0 2px;
+  }
+  .tl-stage.upcoming .tl-name{color:var(--steel-light);}
+  .tl-name:hover, .tl-name:focus{border-bottom-color:var(--gold);}
+  .tl-date{
+    margin-top:4px;
+    font:500 10.5px 'IBM Plex Mono',monospace;
+    color:var(--steel-light); text-align:center;
+    outline:none; min-width:16px; min-height:1.2em;
+    border-bottom:1px dashed transparent; padding:0 2px;
+  }
+  .tl-date:hover, .tl-date:focus{border-bottom-color:var(--gold);}
+  .tl-hint{
+    font:400 9.5px 'Archivo','Kanit',sans-serif;
+    color:var(--steel-light); margin-top:2px; opacity:.7;
+  }
+
+  .tl-note{
+    margin-top:22px;
+    font:500 13.5px 'Archivo','Kanit',sans-serif;
+    color:var(--ink); line-height:1.5;
+    padding:12px 16px;
+    background:var(--row-alt);
+    border-left:3px solid var(--gold);
+    border-radius:4px;
+    outline:none;
+  }
+  .tl-note:hover, .tl-note:focus{background:#F1F0E8;}
+
+  /* Per-stage expandable detail (opens on clicking a stage) */
+  .tl-detail{
+    margin-top:16px;
+    padding:16px 18px;
+    background:var(--ink);
+    border-radius:8px;
+    color:#EDF1F0;
+  }
+  .tl-detail-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; margin-bottom:10px; flex-wrap:wrap;
+  }
+  .tl-detail-stage{
+    font:700 13.5px 'Archivo','Kanit',sans-serif;
+    color:#fff;
+  }
+  .tl-detail-date{
+    font:500 11px 'IBM Plex Mono',monospace;
+    color:var(--gold-dim);
+  }
+  .tl-detail-note{
+    font:500 13px 'Archivo','Kanit',sans-serif;
+    line-height:1.6; color:#D7E0E5;
+    outline:none; min-height:1.6em;
+    border-bottom:1px dashed transparent;
+  }
+  .tl-detail-note:hover, .tl-detail-note:focus{border-bottom-color:var(--gold-dim);}
+  .tl-detail-note:empty::before{content:"ยังไม่มีรายละเอียดเพิ่มเติม — คลิกเพื่อพิมพ์"; color:var(--steel-light);}
+  .tl-detail-foot{
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:12px; margin-top:14px; flex-wrap:wrap;
+  }
+  .tl-detail-actions{display:flex; gap:8px;}
+  .tl-set-current{
+    font:700 11px 'Archivo','Kanit',sans-serif;
+    background:var(--gold); color:#0A0E14; border:none;
+    padding:7px 14px; border-radius:5px; cursor:pointer;
+  }
+  .tl-set-current:hover{background:var(--gold-dim);}
+  .tl-set-current[disabled]{background:rgba(255,255,255,.1); color:var(--steel-light); cursor:default;}
+  .tl-detail-close{
+    background:none; border:none; color:var(--steel-light);
+    font:600 11px 'Archivo','Kanit',sans-serif; cursor:pointer; text-decoration:underline;
+  }
+
+  body.read-only .tl-stage{cursor:default;}
+  body.read-only .tl-hint{display:none;}
+  body.read-only .tl-set-current{display:none !important;}
 
   /* ===== QR / CLIENT LINK PANEL ===== */
   #qrOverlay{
@@ -603,7 +745,8 @@
     body{background:#fff;padding:0;}
     .sheet{box-shadow:none;border:none;max-width:none;}
     .toolbar, .toolbar-2, .toolbar-3{display:none !important;}
-    #loginGate, #qrOverlay, #genQrBtn, #logoutBtn, .status-tag{display:none !important;}
+    #loginGate, #qrOverlay, #genQrBtn, #logoutBtn, #publishBtn, .publish-time, .status-tag{display:none !important;}
+    .tl-hint, .tl-detail{display:none !important;}
     .del-row{display:none !important;}
 
     .gantt-scroll{overflow:visible;}
@@ -703,18 +846,39 @@
     </div>
   </header>
 
-  <!-- CURRENT STATUS BANNER -->
-  <div class="status-banner">
-    <span class="sb-label">สถานะปัจจุบัน</span>
-    <select class="status-tag" id="statusTagSelect" data-tag="ontrack">
-      <option value="ontrack">ตามแผน</option>
-      <option value="delayed">ล่าช้า</option>
-      <option value="hold">ระงับชั่วคราว</option>
-      <option value="done">เสร็จสิ้น</option>
-    </select>
-    <div class="status-text cell-edit" contenteditable="true" id="statusText">เข้าสู่ขั้นตอน Production แล้ว (ย้ายจาก Planning เมื่อ 1 ส.ค. — หมายเหตุ: Planning approved) Drawing และข้อมูล Part อื่นๆ พร้อมใช้งานในไฟล์กลางแล้ว</div>
-    <span class="status-time" id="statusTime">อัปเดตล่าสุด 01/08/2026 14:21</span>
-    <span class="client-badge">มุมมองลูกค้า (อ่านอย่างเดียว)</span>
+  <!-- PROGRESS TIMELINE -->
+  <div class="timeline-panel">
+    <div class="tl-head">
+      <span class="tl-title">ขั้นตอนการทำงานจริง / Progress Timeline</span>
+      <div class="tl-meta">
+        <select class="status-tag" id="statusTagSelect" data-tag="ontrack">
+          <option value="ontrack">ตามแผน</option>
+          <option value="delayed">ล่าช้า</option>
+          <option value="hold">ระงับชั่วคราว</option>
+          <option value="done">เสร็จสิ้น</option>
+        </select>
+        <span class="status-time" id="statusTime">อัปเดตล่าสุด 01/08/2026 14:21</span>
+        <span class="client-badge">มุมมองลูกค้า (อ่านอย่างเดียว)</span>
+      </div>
+    </div>
+
+    <div class="tl-track" id="timelineTrack"></div>
+
+    <div class="tl-detail" id="tlDetail" style="display:none;">
+      <div class="tl-detail-head">
+        <span class="tl-detail-stage" id="tlDetailStage"></span>
+        <span class="tl-detail-date" id="tlDetailDate"></span>
+      </div>
+      <div class="tl-detail-note cell-edit" contenteditable="true" id="tlDetailNote"></div>
+      <div class="tl-detail-foot">
+        <div class="tl-detail-actions">
+          <button class="tl-set-current" id="tlSetCurrentBtn">ตั้งเป็นขั้นตอนปัจจุบัน</button>
+          <button class="tl-detail-close" id="tlDetailClose">ปิด</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-note cell-edit" contenteditable="true" id="statusText">เข้าสู่ขั้นตอนการผลิตแล้ว ส่งต่องานจากฝ่ายวางแผนเรียบร้อยตามกำหนดการ</div>
   </div>
 
   <!-- TOOLBAR / LEGEND -->
@@ -732,6 +896,8 @@
       <div class="chip erase" data-color="">— ลบสี</div>
     </div>
     <div class="spacer"></div>
+    <span class="publish-time" id="publishedAt"></span>
+    <button class="btn publish-btn" id="publishBtn">บันทึก</button>
     <button class="btn ghost" id="addRow">+ เพิ่มงาน</button>
     <button class="btn" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
   </div>
@@ -837,6 +1003,124 @@ const ROWS = [
 ];
 
 let selectedColor = "var(--c-drawing)";
+
+/* ---------------- PROGRESS TIMELINE ----------------
+   Stages = fixed pre-production stages + one stage per Gantt row (name = that
+   row's Description, milestone% = cumulative Ratio through that row — always
+/* ---------------- PROGRESS TIMELINE ----------------
+   Fixed business-process stages, the same set for every job. Production's
+   milestone isn't a typed-in guess — it reads live off the Gantt table
+   (sum of each task's Ratio × Work Progress), so it always matches the plan. */
+let TIMELINE_DATA = {
+  stages: [
+    {key:"start", name:"Start", date:"17 ก.ค.", note:"ได้รับใบสั่งซื้อ (Purchase Order) จากลูกค้าเรียบร้อยแล้ว"},
+    {key:"planning", name:"Planning", date:"20 ก.ค.", note:"ฝ่ายวางแผนตรวจสอบและอนุมัติแผนงานเรียบร้อย จึงส่งต่องานเข้าสู่ขั้นตอนวิศวกรรม"},
+    {key:"engineering", name:"Engineering", date:"21 ก.ค.", note:"ฝ่ายเขียนแบบดำเนินการจัดทำแบบ Drawing"},
+    {key:"production", name:"Production", date:"1 ส.ค.", note:"ส่งต่องานเข้าสู่กระบวนการผลิตเรียบร้อยแล้ว"},
+    {key:"qc", name:"QC", date:"", note:""},
+    {key:"delivery", name:"Delivery", date:"", note:""}
+  ],
+  current: "production"
+};
+
+/* Fixed floor % for stages that aren't directly tracked in the Gantt table.
+   "production" is intentionally absent — its % is read live from the table. */
+const STAGE_MILESTONE_FLOOR = {start:0, planning:0, engineering:0, qc:95, delivery:100};
+
+let openDetailKey = null;
+
+function ganttSum(){
+  let sum = 0;
+  tbody.querySelectorAll('tr[data-no]').forEach(tr=>{
+    sum += pctToNum(tr.querySelector('.prog-val').textContent);
+  });
+  return Math.round(sum * 10) / 10;
+}
+
+function stageMilestone(stage){
+  if(stage.key === 'production') return ganttSum();
+  return STAGE_MILESTONE_FLOOR[stage.key] ?? 0;
+}
+
+function buildTimeline(){
+  const track = document.getElementById('timelineTrack');
+  track.innerHTML = '';
+  const stages = TIMELINE_DATA.stages;
+  let curIdx = stages.findIndex(s => s.key === TIMELINE_DATA.current);
+  if(curIdx === -1) curIdx = 0;
+
+  stages.forEach((stage, i)=>{
+    const el = document.createElement('div');
+    const state = i < curIdx ? 'completed' : (i === curIdx ? 'current' : 'upcoming');
+    el.className = 'tl-stage ' + state;
+    el.dataset.key = stage.key;
+
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot';
+    dot.textContent = state === 'completed' ? '✓' : String(i+1);
+
+    const name = document.createElement('div');
+    name.className = 'tl-name cell-edit';
+    name.contentEditable = READ_ONLY ? 'false' : 'true';
+    name.textContent = stage.name;
+
+    const date = document.createElement('div');
+    date.className = 'tl-date cell-edit';
+    date.contentEditable = READ_ONLY ? 'false' : 'true';
+    date.textContent = stage.date || '—';
+
+    el.appendChild(dot);
+    el.appendChild(name);
+    el.appendChild(date);
+
+    const hint = document.createElement('div');
+    hint.className = 'tl-hint';
+    hint.textContent = 'คลิกดูรายละเอียด';
+    el.appendChild(hint);
+
+    el.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('cell-edit')) return;
+      openDetail(stage.key);
+    });
+
+    track.appendChild(el);
+  });
+}
+
+function openDetail(key){
+  openDetailKey = key;
+  const stages = TIMELINE_DATA.stages;
+  const stage = stages.find(s => s.key === key);
+  if(!stage) return;
+
+  document.getElementById('tlDetailStage').textContent = stage.name;
+  document.getElementById('tlDetailDate').textContent = stage.date || '—';
+  const noteEl = document.getElementById('tlDetailNote');
+  noteEl.textContent = stage.note || '';
+  noteEl.contentEditable = READ_ONLY ? 'false' : 'true';
+
+  const setBtn = document.getElementById('tlSetCurrentBtn');
+  const isCurrent = key === TIMELINE_DATA.current;
+  setBtn.disabled = isCurrent;
+  setBtn.textContent = isCurrent ? 'ขั้นตอนปัจจุบัน' : 'ตั้งเป็นขั้นตอนปัจจุบัน';
+
+  document.getElementById('tlDetail').style.display = 'block';
+}
+
+document.getElementById('tlDetailClose').addEventListener('click', ()=>{
+  document.getElementById('tlDetail').style.display = 'none';
+  openDetailKey = null;
+});
+
+document.getElementById('tlSetCurrentBtn').addEventListener('click', ()=>{
+  if(READ_ONLY || openDetailKey === null) return;
+  TIMELINE_DATA.current = openDetailKey;
+  buildTimeline();
+  openDetail(openDetailKey);
+  markStatusUpdated();
+  recalcOverall();
+  save();
+});
 
 if(READ_ONLY){
   document.body.classList.add('read-only');
@@ -1053,10 +1337,10 @@ function pctToNum(str){
 }
 
 function recalcOverall(){
-  let sum = 0;
-  tbody.querySelectorAll('tr[data-no]').forEach(tr=>{
-    sum += pctToNum(tr.querySelector('.prog-val').textContent);
-  });
+  let sum = ganttSum();
+  const stage = TIMELINE_DATA.stages.find(s => s.key === TIMELINE_DATA.current);
+  const milestone = stage ? stageMilestone(stage) : 0;
+  sum = Math.max(sum, milestone);
   sum = Math.round(sum * 10) / 10;
   document.getElementById('gaugeNum').innerHTML = sum + '<span>%</span>';
   document.getElementById('gauge').style.setProperty('--pct', sum);
@@ -1086,13 +1370,15 @@ try{
 }
 
 /* ================= NAMED JOB SLOTS (Firebase-backed persistence) ================= */
-const JOBS_PATH = 'schedule-jobs';
+const JOBS_PATH = 'schedule-jobs';       // published — what client `?job=` links read
+const DRAFTS_PATH = 'schedule-drafts';   // private staff draft — autosaved as you type
 let CURRENT_KEY = 'J1572';
 
 function sanitizeKey(name){
   return name.trim().replace(/\s+/g,'-').replace(/[.#$\/\[\]'"]/g,'');
 }
 function jobPath(k){ return JOBS_PATH + '/' + k; }
+function draftPath(k){ return DRAFTS_PATH + '/' + k; }
 
 function setCurrentJobLabel(){
   const el = document.getElementById('currentJobLabel');
@@ -1151,6 +1437,7 @@ function serialize(){
     statusText: document.getElementById('statusText').textContent.trim(),
     statusTag: document.getElementById('statusTagSelect').value,
     statusTime: document.getElementById('statusTime').textContent.trim(),
+    timeline: TIMELINE_DATA,
     rows
   };
 }
@@ -1188,18 +1475,35 @@ function applyData(data){
   tagSel.setAttribute('data-tag', tagSel.value);
   document.getElementById('statusTime').textContent = data.statusTime ?? '';
 
+  if(data.timeline && Array.isArray(data.timeline.stages)){
+    TIMELINE_DATA = data.timeline;
+  }
+  document.getElementById('tlDetail').style.display = 'none';
+  openDetailKey = null;
+
   tbody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
   (data.rows || []).forEach(r => tbody.appendChild(makeRow({...r, cells: decodeCells(r.cells)})));
+  buildTimeline();
 
   recalcOverall();
 }
 
 let saveTimer = null;
+let hasUnpublished = false;
+
+function setPublishState(dirty){
+  hasUnpublished = dirty;
+  const btn = document.getElementById('publishBtn');
+  if(btn) btn.classList.toggle('dirty', dirty);
+}
+
+/* Autosave — writes to the private draft only. Never touches what clients see. */
 function save(immediate){
   if(!hasStorage || READ_ONLY) return Promise.resolve();
   const run = async ()=>{
     try{
-      await db.ref(jobPath(CURRENT_KEY)).set(serialize());
+      await db.ref(draftPath(CURRENT_KEY)).set(serialize());
+      setPublishState(true);
     }catch(err){ /* best-effort — check Firebase rules if this keeps failing */ }
   };
   if(immediate) return run();
@@ -1207,6 +1511,32 @@ function save(immediate){
   saveTimer = setTimeout(run, 250);
   return Promise.resolve();
 }
+
+/* Explicit Save button — publishes the current state to the path client
+   `?job=` links read. This is the only thing that changes what clients see. */
+async function publishNow(){
+  if(!hasStorage || READ_ONLY) return;
+  const btn = document.getElementById('publishBtn');
+  const label = document.getElementById('publishedAt');
+  if(btn){ btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
+  try{
+    const data = serialize();
+    await db.ref(jobPath(CURRENT_KEY)).set(data);
+    await db.ref(draftPath(CURRENT_KEY)).set(data); // keep draft in sync with what was published
+    setPublishState(false);
+    if(label){
+      const t = new Date();
+      const hh = String(t.getHours()).padStart(2,'0');
+      const mm = String(t.getMinutes()).padStart(2,'0');
+      label.textContent = 'เผยแพร่ล่าสุด ' + hh + ':' + mm;
+    }
+  }catch(err){
+    alert('บันทึกไม่สำเร็จ ตรวจสอบการเชื่อมต่อ/สิทธิ์การเขียนใน Firebase');
+  }
+  if(btn){ btn.disabled = false; btn.textContent = 'บันทึก'; }
+}
+
+document.getElementById('publishBtn')?.addEventListener('click', publishNow);
 
 /* Save on any edit to a contenteditable field (blur doesn't bubble, use capture) */
 function markStatusUpdated(){
@@ -1225,6 +1555,11 @@ document.getElementById('statusTagSelect').addEventListener('change', (e)=>{
   save();
 });
 
+function setStageField(stageKey, field, value){
+  const s = TIMELINE_DATA.stages.find(x => x.key === stageKey);
+  if(s) s[field] = value;
+}
+
 document.addEventListener('blur', function(e){
   if(READ_ONLY) return;
   const t = e.target;
@@ -1232,7 +1567,21 @@ document.addEventListener('blur', function(e){
 
   if(t.classList.contains('ratio-val') || t.classList.contains('wp-text')){
     const tr = t.closest('tr[data-no]');
-    if(tr){ updateRowCalc(tr); return; } // recalculates Progress, overall gauge, and saves
+    if(tr){ updateRowCalc(tr); return; } // recalculates Progress, overall gauge, timeline milestones, and saves
+  }
+  if(t.classList.contains('tl-name') || t.classList.contains('tl-date')){
+    const stageEl = t.closest('.tl-stage');
+    if(stageEl){
+      const key = stageEl.dataset.key;
+      if(t.classList.contains('tl-name')) setStageField(key, 'name', t.textContent.trim());
+      if(t.classList.contains('tl-date')){
+        const val = t.textContent.trim();
+        setStageField(key, 'date', (val === '—') ? '' : val);
+      }
+    }
+  }
+  if(t.id === 'tlDetailNote' && openDetailKey !== null){
+    setStageField(openDetailKey, 'note', t.textContent.trim());
   }
   if(t.id === 'statusText') markStatusUpdated();
   save();
@@ -1255,7 +1604,7 @@ document.getElementById('saveAsBtn').addEventListener('click', async ()=>{
   }catch(err){ /* read blocked or doesn't exist — proceed to write */ }
 
   CURRENT_KEY = key;
-  await save(true);
+  await publishNow(); // brand-new job: publish immediately so its QR/link works right away
   setCurrentJobLabel();
   nameInput.value = '';
   refreshSavedList();
@@ -1267,11 +1616,15 @@ document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
   const key = sel.value;
   if(!key) { alert('ยังไม่มีไฟล์งานที่บันทึกไว้'); return; }
   try{
-    const snap = await db.ref(jobPath(key)).once('value');
+    // prefer this job's own draft (continue unpublished edits), fall back to published
+    let snap = await db.ref(draftPath(key)).once('value');
+    let fromDraft = snap.exists();
+    if(!fromDraft) snap = await db.ref(jobPath(key)).once('value');
     if(snap.exists()){
       CURRENT_KEY = key;
       applyData(snap.val());
       setCurrentJobLabel();
+      setPublishState(fromDraft);
     }else{
       alert('ไม่พบข้อมูลของไฟล์งานนี้');
     }
@@ -1281,13 +1634,26 @@ document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
 });
 
 async function init(){
+  if(hasStorage && !READ_ONLY){
+    // staff: resume the private draft if one exists (keeps unpublished edits across reloads)
+    try{
+      const draftSnap = await db.ref(draftPath(CURRENT_KEY)).once('value');
+      if(draftSnap.exists()){
+        applyData(draftSnap.val());
+        setCurrentJobLabel();
+        setPublishState(true);
+        refreshSavedList();
+        return;
+      }
+    }catch(err){ /* no draft yet */ }
+  }
   if(hasStorage){
     try{
       const snap = await db.ref(jobPath(CURRENT_KEY)).once('value');
       if(snap.exists()){
         applyData(snap.val());
         setCurrentJobLabel();
-        if(!READ_ONLY) refreshSavedList();
+        if(!READ_ONLY){ setPublishState(false); refreshSavedList(); }
         return;
       }
     }catch(err){ /* no saved record yet, or rules blocked read */ }
@@ -1301,13 +1667,17 @@ async function init(){
   // fall back to the default template (staff, first run)
   ROWS.forEach(r => tbody.appendChild(makeRow(r)));
   recalcOverall();
+  buildTimeline();
   setCurrentJobLabel();
-  save(true);
+  await publishNow(); // first-ever run: publish the starting template right away
   refreshSavedList();
 }
 
 /* ---- QR / Client link panel (staff only) ---- */
 document.getElementById('genQrBtn').addEventListener('click', ()=>{
+  if(hasUnpublished){
+    if(!confirm('มีการแก้ไขที่ยังไม่ได้กด "บันทึก" — ลูกค้าจะยังเห็นข้อมูลเวอร์ชันก่อนหน้า ต้องการดำเนินการต่อโดยไม่บันทึกก่อนหรือไม่?')) return;
+  }
   const link = window.location.origin + window.location.pathname + '?job=' + encodeURIComponent(CURRENT_KEY);
   document.getElementById('qrJobName').textContent = CURRENT_KEY;
   document.getElementById('qrLinkInput').value = link;
