@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <style>
   :root{
     --ink:#0A0E14;
@@ -423,6 +424,165 @@
   .sign-line{width:150px; border-bottom:1px solid var(--line-strong); height:36px;}
   .sign-cap{font:600 10.5px 'Archivo','Kanit',sans-serif; color:var(--steel-light); margin-top:6px; outline:none;}
 
+  /* ===== LOGIN GATE ===== */
+  #loginGate{
+    position:fixed; inset:0; z-index:100;
+    background:
+      radial-gradient(120% 90% at 20% -10%, rgba(255,255,255,.06), transparent 55%),
+      linear-gradient(160deg, #17222D 0%, #0C131A 45%, #04070A 100%);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .login-card{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(234,240,243,.14);
+    border-radius:14px;
+    padding:40px 36px;
+    width:100%; max-width:340px;
+    text-align:center;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.6);
+  }
+  .login-card .brand-logo{height:64px; margin:0 auto 18px;}
+  .login-card h2{
+    font:800 20px 'Archivo','Kanit',sans-serif;
+    color:#fff; margin:0 0 6px; text-transform:uppercase;
+  }
+  .login-card p{
+    font:400 12.5px 'Archivo','Kanit',sans-serif;
+    color:var(--steel-light); margin:0 0 24px;
+  }
+  .login-field{text-align:left; margin-bottom:14px;}
+  .login-field label{
+    display:block; font:600 10px 'Archivo','Kanit',sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--steel-light); margin-bottom:6px;
+  }
+  .login-field input{
+    width:100%; box-sizing:border-box;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(234,240,243,.18);
+    border-radius:6px;
+    padding:10px 12px;
+    font:500 14px 'Archivo','Kanit',sans-serif;
+    color:#fff; outline:none;
+  }
+  .login-field input:focus{border-color:var(--gold);}
+  .login-btn{
+    width:100%; margin-top:6px;
+    background:var(--gold); border:1px solid var(--gold);
+    color:#0A0E14; font:700 13px 'Archivo','Kanit',sans-serif;
+    padding:11px; border-radius:6px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.03em;
+  }
+  .login-btn:hover{background:var(--gold-dim);}
+  .login-error{
+    color:#F87171; font:500 12px 'Archivo','Kanit',sans-serif;
+    margin-top:12px; min-height:16px;
+  }
+
+  /* ===== CURRENT STATUS BANNER ===== */
+  .status-banner{
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:18px 40px;
+    background:var(--card);
+    border-bottom:1px solid var(--line-strong);
+  }
+  .status-banner .sb-label{
+    font:700 11px 'Archivo','Kanit',sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--steel); flex:none;
+  }
+  .status-tag{
+    font:700 11.5px 'Archivo','Kanit',sans-serif;
+    padding:6px 14px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:.03em;
+    border:none; outline:none; cursor:pointer;
+    flex:none;
+  }
+  .status-tag[data-tag="ontrack"]{background:#DCFCE7; color:#166534;}
+  .status-tag[data-tag="delayed"]{background:#FEF3C7; color:#92400E;}
+  .status-tag[data-tag="hold"]{background:#F1F5F9; color:#475569;}
+  .status-tag[data-tag="done"]{background:#DBEAFE; color:#1E40AF;}
+  .status-text{
+    flex:1; min-width:220px;
+    font:500 14px 'Archivo','Kanit',sans-serif;
+    color:var(--ink);
+    outline:none;
+    border-bottom:1px dashed transparent;
+    padding:2px 0;
+  }
+  .status-text:hover, .status-text:focus{border-bottom-color:var(--gold);}
+  .status-time{
+    flex:none;
+    font:500 11.5px 'IBM Plex Mono',monospace;
+    color:var(--steel-light);
+  }
+
+  /* ===== QR / CLIENT LINK PANEL ===== */
+  #qrOverlay{
+    position:fixed; inset:0; z-index:90;
+    background:rgba(10,14,20,.6);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .qr-card{
+    background:#fff; border-radius:14px; padding:32px;
+    width:100%; max-width:340px; text-align:center;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.5);
+  }
+  .qr-card h3{
+    font:700 15px 'Archivo','Kanit',sans-serif;
+    color:var(--ink); margin:0 0 4px;
+  }
+  .qr-card p.job-name{
+    font:600 12px 'IBM Plex Mono',monospace;
+    color:var(--gold); margin:0 0 16px;
+  }
+  .qr-card img{width:200px; height:200px; border:1px solid var(--line); border-radius:8px;}
+  .qr-link-row{
+    display:flex; gap:6px; margin-top:16px;
+  }
+  .qr-link-row input{
+    flex:1; min-width:0;
+    font:500 11px 'IBM Plex Mono',monospace;
+    border:1px solid var(--line-strong); border-radius:6px;
+    padding:8px 10px; color:var(--ink); outline:none;
+  }
+  .qr-close{
+    margin-top:18px; background:none; border:none;
+    color:var(--steel-light); font:600 12px 'Archivo','Kanit',sans-serif;
+    cursor:pointer; text-decoration:underline;
+  }
+
+  /* ===== READ-ONLY (CLIENT) MODE ===== */
+  body.read-only .toolbar-2,
+  body.read-only .toolbar-3,
+  body.read-only #addRow,
+  body.read-only .del-row,
+  body.read-only .status-tag,
+  body.read-only #genQrBtn,
+  body.read-only #logoutBtn{
+    display:none !important;
+  }
+  body.read-only td.day-cell{cursor:default;}
+  body.read-only td.day-cell:hover{outline:none;}
+  body.read-only .cell-edit:hover,
+  body.read-only .cell-edit:focus,
+  body.read-only .status-text:hover,
+  body.read-only .status-text:focus{
+    border-bottom-color:transparent !important;
+    background:transparent !important;
+  }
+  .client-badge{
+    display:none;
+    font:700 10.5px 'Archivo','Kanit',sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--gold-dim);
+    border:1px solid rgba(234,240,243,.25);
+    padding:4px 10px; border-radius:20px;
+  }
+  body.read-only .client-badge{display:inline-block;}
+
   @media (max-width:760px){
     .plate{padding:22px 20px;}
     .plate-left{flex-direction:column; align-items:flex-start;}
@@ -443,6 +603,7 @@
     body{background:#fff;padding:0;}
     .sheet{box-shadow:none;border:none;max-width:none;}
     .toolbar, .toolbar-2, .toolbar-3{display:none !important;}
+    #loginGate, #qrOverlay, #genQrBtn, #logoutBtn, .status-tag{display:none !important;}
     .del-row{display:none !important;}
 
     .gantt-scroll{overflow:visible;}
@@ -471,6 +632,39 @@
 </style>
 </head>
 <body>
+
+<!-- STAFF LOGIN GATE (hidden automatically in client view / once signed in) -->
+<div id="loginGate" style="display:none;">
+  <div class="login-card">
+    <div class="eyebrow" style="color:var(--gold-dim);">EMT Machinery Service</div>
+    <h2>เข้าสู่ระบบพนักงาน</h2>
+    <p>สำหรับพนักงานเท่านั้น — ใช้บัญชีที่บริษัทออกให้</p>
+    <div class="login-field">
+      <label>อีเมล</label>
+      <input type="email" id="loginEmail" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="loginPassword" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn">เข้าสู่ระบบ</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- QR / CLIENT LINK OVERLAY -->
+<div id="qrOverlay" style="display:none;">
+  <div class="qr-card">
+    <h3>ลิงก์สำหรับลูกค้า</h3>
+    <p class="job-name" id="qrJobName">—</p>
+    <img id="qrImage" src="" alt="QR code">
+    <div class="qr-link-row">
+      <input type="text" id="qrLinkInput" readonly>
+      <button class="btn small" id="qrCopyBtn">คัดลอก</button>
+    </div>
+    <button class="qr-close" id="qrCloseBtn">ปิดหน้าต่างนี้</button>
+  </div>
+</div>
 
 <div class="sheet">
   <div class="top-band"></div>
@@ -509,8 +703,23 @@
     </div>
   </header>
 
+  <!-- CURRENT STATUS BANNER -->
+  <div class="status-banner">
+    <span class="sb-label">สถานะปัจจุบัน</span>
+    <select class="status-tag" id="statusTagSelect" data-tag="ontrack">
+      <option value="ontrack">ตามแผน</option>
+      <option value="delayed">ล่าช้า</option>
+      <option value="hold">ระงับชั่วคราว</option>
+      <option value="done">เสร็จสิ้น</option>
+    </select>
+    <div class="status-text cell-edit" contenteditable="true" id="statusText">กำลังดำเนินการ Cutting + Bending — คาดว่าแล้วเสร็จตามแผน</div>
+    <span class="status-time" id="statusTime"></span>
+    <span class="client-badge">มุมมองลูกค้า (อ่านอย่างเดียว)</span>
+  </div>
+
   <!-- TOOLBAR / LEGEND -->
   <div class="toolbar">
+    <button class="btn ghost small" id="logoutBtn">ออกจากระบบ</button>
     <div class="legend" id="legend">
       <div class="chip active" data-color="var(--c-drawing)"><span class="sw" style="background:var(--c-drawing)"></span><span class="lbl cell-edit" contenteditable="true">Drawing</span></div>
       <div class="chip" data-color="var(--c-material)"><span class="sw" style="background:var(--c-material)"></span><span class="lbl cell-edit" contenteditable="true">Material</span></div>
@@ -549,6 +758,8 @@
     <span class="cal-sep">|</span>
     <select id="savedJobsSelect" class="name-input"></select>
     <button class="btn ghost small" id="loadSavedBtn">เปิดไฟล์นี้</button>
+    <span class="cal-sep">|</span>
+    <button class="btn small" id="genQrBtn">สร้างลิงก์ / QR ลูกค้า</button>
   </div>
 
   <!-- GANTT -->
@@ -601,6 +812,11 @@
 </div>
 
 <script>
+/* ---------------- ACCESS MODE (client link vs. staff dashboard) ---------------- */
+const urlParams = new URLSearchParams(window.location.search);
+const clientJobParam = urlParams.get('job');
+let READ_ONLY = !!clientJobParam;
+
 /* ---------------- CONFIG ---------------- */
 let TOTAL_DAYS = 32;
 let START_DATE = new Date(2026, 6, 20); // 20 Jul 2026 — changeable via the calendar control
@@ -621,6 +837,13 @@ const ROWS = [
 ];
 
 let selectedColor = "var(--c-drawing)";
+
+if(READ_ONLY){
+  document.body.classList.add('read-only');
+  document.querySelectorAll('.cell-edit[contenteditable="true"]').forEach(el => el.contentEditable = 'false');
+  document.querySelectorAll('.chip').forEach(chip => { chip.style.cursor = 'default'; });
+}
+
 
 /* ---------------- BUILD DAY HEADERS ---------------- */
 const colgroup = document.getElementById('colgroup');
@@ -696,24 +919,26 @@ function makeRow(row){
   const wpNum = pctToNum(row.wp);
   const ratioNum = pctToNum(row.ratio);
   const progNum = Math.round(ratioNum * wpNum / 100);
+  const editable = READ_ONLY ? 'false' : 'true';
 
   tr.innerHTML = `
     <td class="sticky no">
-      <span class="cell-edit" contenteditable="true" style="display:inline-block;padding:8px 4px;">${row.no}</span>
+      <span class="cell-edit" contenteditable="${editable}" style="display:inline-block;padding:8px 4px;">${row.no}</span>
       <span class="del-row" title="ลบแถวนี้">✕</span>
     </td>
-    <td class="sticky desc"><span class="cell-edit" contenteditable="true">${row.desc}</span></td>
-    <td class="sticky ratio"><span class="cell-edit ratio-val" contenteditable="true">${row.ratio}</span></td>
+    <td class="sticky desc"><span class="cell-edit" contenteditable="${editable}">${row.desc}</span></td>
+    <td class="sticky ratio"><span class="cell-edit ratio-val" contenteditable="${editable}">${row.ratio}</span></td>
     <td class="sticky prog"><span class="prog-val" title="คำนวณอัตโนมัติ = Ratio × Work Progress">${progNum}%</span></td>
     <td class="sticky wp">
       <div class="wp-track"><div class="wp-fill" style="width:${wpNum}%"></div></div>
-      <div class="wp-text cell-edit" contenteditable="true">${wpNum}%</div>
+      <div class="wp-text cell-edit" contenteditable="${editable}">${wpNum}%</div>
     </td>
   `;
 
   rebuildRowDays(tr, row.cells, row);
 
   tr.querySelector('.del-row').addEventListener('click', ()=>{
+    if(READ_ONLY) return;
     if(confirm('ลบงานนี้ออกจากตารางใช่หรือไม่?')){ tr.remove(); recalcOverall(); save(); }
   });
 
@@ -742,7 +967,7 @@ function rebuildRowDays(tr, cells, rangeRow){
       td.style.background = color;
       td.dataset.painted = color;
     }
-    td.addEventListener('click', ()=>{ paintCell(td); save(); });
+    td.addEventListener('click', ()=>{ if(READ_ONLY) return; paintCell(td); save(); });
     tr.appendChild(td);
   }
 }
@@ -750,6 +975,7 @@ function rebuildRowDays(tr, cells, rangeRow){
 /* Recompute a row's Progress (= Ratio × Work Progress ÷ 100) and the WP bar,
    then roll everything up into the overall gauge. */
 function updateRowCalc(tr){
+  if(READ_ONLY) return;
   const ratio = pctToNum(tr.querySelector('.ratio-val').textContent);
   const wpEl = tr.querySelector('.wp-text');
   let wp = pctToNum(wpEl.textContent);
@@ -763,6 +989,7 @@ function updateRowCalc(tr){
 }
 
 function paintCell(td){
+  if(READ_ONLY) return;
   if(selectedColor === ""){
     td.style.background = "";
     td.dataset.painted = "";
@@ -776,6 +1003,7 @@ function paintCell(td){
 /* ---------------- LEGEND SELECT ---------------- */
 document.querySelectorAll('.chip').forEach(chip=>{
   chip.addEventListener('click', (e)=>{
+    if(READ_ONLY) return;
     if(e.target.classList.contains('lbl')) return;
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active');
@@ -920,6 +1148,9 @@ function serialize(){
     startDate: fmtISO(START_DATE),
     totalDays: TOTAL_DAYS,
     monthLang: MONTH_LANG,
+    statusText: document.getElementById('statusText').textContent.trim(),
+    statusTag: document.getElementById('statusTagSelect').value,
+    statusTime: document.getElementById('statusTime').textContent.trim(),
     rows
   };
 }
@@ -951,6 +1182,12 @@ function applyData(data){
   if(monthLangEl) monthLangEl.value = MONTH_LANG;
   buildDayHeaders();
 
+  document.getElementById('statusText').textContent = data.statusText ?? 'ยังไม่มีการอัปเดตสถานะ';
+  const tagSel = document.getElementById('statusTagSelect');
+  tagSel.value = data.statusTag ?? 'ontrack';
+  tagSel.setAttribute('data-tag', tagSel.value);
+  document.getElementById('statusTime').textContent = data.statusTime ?? '';
+
   tbody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
   (data.rows || []).forEach(r => tbody.appendChild(makeRow({...r, cells: decodeCells(r.cells)})));
 
@@ -959,7 +1196,7 @@ function applyData(data){
 
 let saveTimer = null;
 function save(immediate){
-  if(!hasStorage) return Promise.resolve();
+  if(!hasStorage || READ_ONLY) return Promise.resolve();
   const run = async ()=>{
     try{
       await db.ref(jobPath(CURRENT_KEY)).set(serialize());
@@ -972,7 +1209,24 @@ function save(immediate){
 }
 
 /* Save on any edit to a contenteditable field (blur doesn't bubble, use capture) */
+function markStatusUpdated(){
+  const t = new Date();
+  const dd = String(t.getDate()).padStart(2,'0');
+  const mm = String(t.getMonth()+1).padStart(2,'0');
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mi = String(t.getMinutes()).padStart(2,'0');
+  document.getElementById('statusTime').textContent = `อัปเดตล่าสุด ${dd}/${mm}/${t.getFullYear()} ${hh}:${mi}`;
+}
+
+document.getElementById('statusTagSelect').addEventListener('change', (e)=>{
+  if(READ_ONLY) return;
+  e.target.setAttribute('data-tag', e.target.value);
+  markStatusUpdated();
+  save();
+});
+
 document.addEventListener('blur', function(e){
+  if(READ_ONLY) return;
   const t = e.target;
   if(!t || !t.classList || !t.classList.contains('cell-edit')) return;
 
@@ -980,6 +1234,7 @@ document.addEventListener('blur', function(e){
     const tr = t.closest('tr[data-no]');
     if(tr){ updateRowCalc(tr); return; } // recalculates Progress, overall gauge, and saves
   }
+  if(t.id === 'statusText') markStatusUpdated();
   save();
 }, true);
 
@@ -1032,12 +1287,18 @@ async function init(){
       if(snap.exists()){
         applyData(snap.val());
         setCurrentJobLabel();
-        refreshSavedList();
+        if(!READ_ONLY) refreshSavedList();
         return;
       }
     }catch(err){ /* no saved record yet, or rules blocked read */ }
   }
-  // fall back to the default template
+  if(READ_ONLY){
+    // client link points at a job that doesn't exist (yet) — show empty state, don't create it
+    document.getElementById('projTitle').textContent = 'ไม่พบข้อมูลงานนี้';
+    setCurrentJobLabel();
+    return;
+  }
+  // fall back to the default template (staff, first run)
   ROWS.forEach(r => tbody.appendChild(makeRow(r)));
   recalcOverall();
   setCurrentJobLabel();
@@ -1045,7 +1306,66 @@ async function init(){
   refreshSavedList();
 }
 
-init();
+/* ---- QR / Client link panel (staff only) ---- */
+document.getElementById('genQrBtn').addEventListener('click', ()=>{
+  const link = window.location.origin + window.location.pathname + '?job=' + encodeURIComponent(CURRENT_KEY);
+  document.getElementById('qrJobName').textContent = CURRENT_KEY;
+  document.getElementById('qrLinkInput').value = link;
+  document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(link);
+  document.getElementById('qrOverlay').style.display = 'flex';
+});
+document.getElementById('qrCloseBtn').addEventListener('click', ()=>{
+  document.getElementById('qrOverlay').style.display = 'none';
+});
+document.getElementById('qrCopyBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('qrLinkInput');
+  input.select();
+  navigator.clipboard?.writeText(input.value).catch(()=>{ document.execCommand('copy'); });
+});
+
+/* ---- Staff login / logout (Firebase Authentication) ---- */
+if(!READ_ONLY){
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPassword').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doLogin(); });
+
+  function doLogin(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    if(!hasStorage || !firebase.auth){
+      errEl.textContent = 'ยังไม่ได้เชื่อมต่อระบบล็อกอิน';
+      return;
+    }
+    firebase.auth().signInWithEmailAndPassword(email, pw).catch(err=>{
+      errEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+    });
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    if(firebase.auth) firebase.auth().signOut();
+  });
+
+  if(hasStorage && firebase.auth){
+    firebase.auth().onAuthStateChanged(user=>{
+      const gate = document.getElementById('loginGate');
+      if(user){
+        gate.style.display = 'none';
+        init();
+      } else {
+        gate.style.display = 'flex';
+      }
+    });
+  } else {
+    // no auth configured — fall back to open staff access
+    init();
+  }
+} else {
+  // client link — no login required, straight to read-only view
+  document.getElementById('loginGate').style.display = 'none';
+  CURRENT_KEY = sanitizeKey(clientJobParam);
+  init();
+}
 </script>
 
 </body>
