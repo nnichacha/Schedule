@@ -313,18 +313,32 @@
   input#saveNameInput.name-input{min-width:190px;}
   .btn.small{padding:6px 12px; font-size:11.5px;}
 
-  /* ===== GANTT ===== */
+  /* ===== GANTT — two independent tables side by side =====
+     Frozen columns (No/Description/Ratio/Progress/Work Progress) live in
+     their own small table that never scrolls. Day columns live in a second
+     table inside a horizontally-scrolling wrapper. They can never overlap or
+     render on top of each other because they are not the same DOM region —
+     row heights are kept in lockstep with matching explicit `height` values. */
+  .gantt-wrap{
+    display:flex;
+    align-items:flex-start;
+  }
+  .gantt-fixed-wrap{ flex:none; }
   .gantt-scroll{
+    flex:1;
+    min-width:0;
     overflow-x:auto;
     padding:0 0 4px;
   }
   table.gantt{
     border-collapse:separate;
     border-spacing:0;
-    width:100%;
-    min-width:1400px;
+    table-layout:fixed;
     font-size:13px;
   }
+  .gantt-fixed{ width:470px; }
+  .gantt-days{ min-width:0; }
+
   .gantt col.fixed-no{width:44px;}
   .gantt col.fixed-desc{width:210px;}
   .gantt col.fixed-num{width:62px;}
@@ -333,69 +347,88 @@
 
   .gantt th, .gantt td{
     border:none;
-    border-right:1px solid var(--line);
-    border-bottom:1px solid var(--line);
+    box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
     padding:0;
+    vertical-align:middle;
   }
-  .gantt th.head-static.no, .gantt td.no{
-    border-left:1px solid var(--line);
+  .gantt th.no, .gantt td.no{
+    box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), inset 1px 0 0 var(--line);
   }
   .gantt thead tr:first-child th{
-    border-top:1px solid var(--line);
+    box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), inset 0 1px 0 var(--line);
   }
+  .gantt thead tr:first-child th.no{
+    box-shadow: inset -1px 0 0 var(--line), inset 1px 0 0 var(--line), inset 0 -1px 0 var(--line), inset 0 1px 0 var(--line);
+  }
+
   .gantt thead th{
     background:var(--navy);
     color:#EDF1F0;
     font:600 10.5px/1.2 'IBM Plex Mono',monospace;
     text-align:center;
     padding:6px 2px;
-    position:sticky; top:0; z-index:3;
-    border-right-color:#1D2A34;
-    border-bottom-color:#1D2A34;
+    box-shadow: inset -1px 0 0 #1D2A34, inset 0 -1px 0 #1D2A34;
+  }
+  .gantt thead th.no{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 0 -1px 0 #1D2A34, inset 1px 0 0 #1D2A34;
+  }
+  .gantt-days thead tr:first-child th{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 0 -1px 0 #1D2A34, inset 0 1px 0 #1D2A34;
   }
   .gantt thead tr.month-row th{
     background:var(--ink);
     font:italic 600 12px/1.2 'Archivo','Kanit',sans-serif;
     letter-spacing:.02em;
     padding:6px 2px;
-    border-right-color:#17222C;
-    border-bottom-color:#17222C;
+    box-shadow: inset -1px 0 0 #17222C, inset 0 -1px 0 #17222C, inset 0 1px 0 #17222C;
     color:var(--gold-dim);
   }
-  .gantt thead th.head-static{
+
+  /* Fixed-side header/body: no sticky needed at all — it's simply never inside a scroller. */
+  .gantt-fixed thead th{
     background:var(--ink);
-    text-align:left;
-    padding:9px 10px;
     font:600 10.5px 'Archivo','Kanit',sans-serif;
     letter-spacing:.03em;
-    position:sticky; left:0; z-index:4;
+    padding:0 6px;
+    height:30px;
   }
-  .gantt thead th.head-static.no{left:0; text-align:center; padding:9px 4px;}
-  .gantt thead th.head-static.desc{left:44px;}
-  .gantt thead th.head-static.ratio{left:254px; text-align:center;}
-  .gantt thead th.head-static.prog{left:316px; text-align:center;}
-  .gantt thead th.head-static.wp{left:378px; text-align:center;}
+  .gantt-fixed thead tr.hdr-row1 th{height:36px;}
+  .gantt-fixed thead th.no{text-align:center; padding:0 2px;}
+  .gantt-fixed thead th.desc{text-align:left;}
+  .gantt-fixed thead th.ratio, .gantt-fixed thead th.prog, .gantt-fixed thead th.wp{text-align:center;}
+  .gantt-fixed thead tr.hdr-row1 th{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 0 1px 0 #1D2A34;
+  }
+  .gantt-fixed thead tr.hdr-row1 th.no{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 1px 0 0 #1D2A34, inset 0 1px 0 #1D2A34;
+  }
+  .gantt-fixed thead tr.hdr-last th{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 0 -1px 0 #1D2A34;
+  }
+  .gantt-fixed thead tr.hdr-last th.no{
+    box-shadow: inset -1px 0 0 #1D2A34, inset 1px 0 0 #1D2A34, inset 0 -1px 0 #1D2A34;
+  }
+
+  .gantt-days thead th{height:30px;}
+  .gantt-days thead tr.month-row th{height:36px;}
 
   .gantt tbody tr:nth-child(even):not(.group-row){background:var(--row-alt);}
-  .gantt tbody tr:nth-child(even):not(.group-row) td.sticky{background:var(--row-alt);}
+  .gantt-fixed tbody td{height:46px;}
+  .gantt-days tbody td{height:46px;}
+  .gantt-fixed tbody tr.group-row td, .gantt-days tbody tr.group-row td{height:44px;}
 
-  .gantt tbody td.sticky{
-    position:sticky; background:var(--card); z-index:2;
-  }
-  .gantt tbody td.no{left:0; text-align:center; font-weight:600; color:var(--steel-light); font-family:'IBM Plex Mono',monospace; font-size:12px;}
-  .gantt tbody td.desc{left:44px; font-weight:600;}
-  .gantt tbody td.ratio{left:254px; text-align:center; font-family:'IBM Plex Mono',monospace;}
-  .gantt tbody td.prog{left:316px; text-align:center; font-family:'IBM Plex Mono',monospace;}
-  .gantt tbody td.wp{left:378px; text-align:center;}
+  .gantt-fixed tbody td.no{text-align:center; font-weight:600; color:var(--steel-light); font-family:'IBM Plex Mono',monospace; font-size:12px;}
+  .gantt-fixed tbody td.desc{font-weight:600;}
+  .gantt-fixed tbody td.ratio{text-align:center; font-family:'IBM Plex Mono',monospace;}
+  .gantt-fixed tbody td.prog{text-align:center; font-family:'IBM Plex Mono',monospace;}
+  .gantt-fixed tbody td.wp{text-align:center;}
 
   .gantt tbody tr.group-row td{
     background:var(--navy-glass);
-    box-shadow:var(--navy-glass-shadow);
+    box-shadow: var(--navy-glass-shadow), inset -1px 0 0 #1A2731, inset 0 -1px 0 #1A2731;
     color:#fff; font-weight:700;
     font-family:'Archivo','Kanit',sans-serif; letter-spacing:.02em;
-    border-color:#1A2731;
   }
-  .gantt tbody tr.group-row td.sticky{background:var(--navy-glass);}
   .gantt tbody tr.group-row .cell-edit{color:#fff;}
   .gantt tbody tr.group-row .prog-val{color:var(--gold-dim);}
 
@@ -403,6 +436,7 @@
     outline:none; padding:8px 10px; display:block;
     border-bottom:1px dashed transparent;
     min-height:1.3em;
+    word-break:break-word;
   }
   .cell-edit:hover, .cell-edit:focus{border-bottom-color:var(--gold); background:rgba(173,138,68,.06);}
   td.ratio .cell-edit, td.prog .cell-edit{padding:8px 4px;}
@@ -749,19 +783,21 @@
     .tl-hint, .tl-detail{display:none !important;}
     .del-row{display:none !important;}
 
-    .gantt-scroll{overflow:visible;}
-    table.gantt{width:100%; min-width:0; table-layout:auto; font-size:9px;}
-    .gantt col.fixed-no{width:26px;}
-    .gantt col.fixed-desc{width:130px;}
-    .gantt col.fixed-num{width:38px;}
-    .gantt col.fixed-wp{width:54px;}
+    .gantt-wrap{display:flex;}
+    .gantt-scroll{overflow:visible; flex:1;}
+    .gantt-fixed{width:290px; font-size:9px;}
+    .gantt-days{width:100%; min-width:0; table-layout:auto; font-size:9px;}
+    .gantt-fixed col.fixed-no{width:18px;}
+    .gantt-fixed col.fixed-desc{width:120px;}
+    .gantt-fixed col.fixed-num{width:38px;}
+    .gantt-fixed col.fixed-wp{width:54px;}
     .gantt col.day{width:auto;}
 
-    .gantt thead th, .gantt tbody td.sticky{position:static !important;}
     .cell-edit{padding:4px 5px !important;}
     td.ratio .cell-edit, td.prog .cell-edit{padding:4px 2px !important;}
     .prog-val{padding:4px 5px !important;}
     td.day-cell{height:22px;}
+    .gantt-fixed tbody td, .gantt-days tbody td{height:26px;}
     .wp-text{font-size:8px;}
 
     .plate{padding:20px 26px 18px;}
@@ -929,32 +965,47 @@
   </div>
 
   <!-- GANTT -->
-  <div class="gantt-scroll">
-    <table class="gantt" id="ganttTable">
-      <colgroup id="colgroup">
-        <col class="fixed-no"><col class="fixed-desc"><col class="fixed-num"><col class="fixed-num"><col class="fixed-wp">
-      </colgroup>
-      <thead>
-        <tr class="month-row" id="monthRow">
-          <th class="head-static no" rowspan="3">No.</th>
-          <th class="head-static desc" rowspan="3">Description</th>
-          <th class="head-static ratio" rowspan="3">Ratio</th>
-          <th class="head-static prog" rowspan="3">Progress</th>
-          <th class="head-static wp" rowspan="3">Work Progress</th>
-        </tr>
-        <tr id="dayNumRow"></tr>
-        <tr id="dayDateRow"></tr>
-      </thead>
-      <tbody id="ganttBody">
-        <tr class="group-row">
-          <td class="sticky no"></td>
-          <td class="sticky desc"><span class="cell-edit" contenteditable="true">AVU 60KW FRAME</span></td>
-          <td class="sticky ratio"><span class="cell-edit" contenteditable="true" id="overallRatioCell">100%</span></td>
-          <td class="sticky prog"><span class="cell-edit" contenteditable="true" id="overallProgCell">8%</span></td>
-          <td class="sticky wp"></td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="gantt-wrap">
+    <div class="gantt-fixed-wrap">
+      <table class="gantt gantt-fixed" id="ganttFixedTable">
+        <colgroup>
+          <col class="fixed-no"><col class="fixed-desc"><col class="fixed-num"><col class="fixed-num"><col class="fixed-wp">
+        </colgroup>
+        <thead>
+          <tr class="hdr-row1">
+            <th class="no">No.</th>
+            <th class="desc">Description</th>
+            <th class="ratio">Ratio</th>
+            <th class="prog">Progress</th>
+            <th class="wp">Work Progress</th>
+          </tr>
+          <tr class="hdr-row2"><th class="no"></th><th class="desc"></th><th class="ratio"></th><th class="prog"></th><th class="wp"></th></tr>
+          <tr class="hdr-row3 hdr-last"><th class="no"></th><th class="desc"></th><th class="ratio"></th><th class="prog"></th><th class="wp"></th></tr>
+        </thead>
+        <tbody id="ganttFixedBody">
+          <tr class="group-row">
+            <td class="no"></td>
+            <td class="desc"><span class="cell-edit" contenteditable="true">AVU 60KW FRAME</span></td>
+            <td class="ratio"><span class="cell-edit" contenteditable="true" id="overallRatioCell">100%</span></td>
+            <td class="prog"><span class="cell-edit" contenteditable="true" id="overallProgCell">8%</span></td>
+            <td class="wp"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="gantt-scroll">
+      <table class="gantt gantt-days" id="ganttTable">
+        <colgroup id="colgroup"></colgroup>
+        <thead>
+          <tr class="month-row" id="monthRow"></tr>
+          <tr id="dayNumRow"></tr>
+          <tr id="dayDateRow"></tr>
+        </thead>
+        <tbody id="ganttBody">
+          <tr class="group-row" id="groupDaysRow"></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- FOOTER -->
@@ -1031,7 +1082,7 @@ let openDetailKey = null;
 
 function ganttSum(){
   let sum = 0;
-  tbody.querySelectorAll('tr[data-no]').forEach(tr=>{
+  fixedBody.querySelectorAll('tr[data-no]').forEach(tr=>{
     sum += pctToNum(tr.querySelector('.prog-val').textContent);
   });
   return Math.round(sum * 10) / 10;
@@ -1134,6 +1185,7 @@ const colgroup = document.getElementById('colgroup');
 const monthRow = document.getElementById('monthRow');
 const dayNumRow = document.getElementById('dayNumRow');
 const dayDateRow = document.getElementById('dayDateRow');
+const groupDaysRow = document.getElementById('groupDaysRow');
 
 function dateForDay(i){
   const d = new Date(START_DATE);
@@ -1150,7 +1202,7 @@ function fmtISO(d){
    from the current START_DATE + TOTAL_DAYS. Safe to call again later. */
 function buildDayHeaders(){
   colgroup.querySelectorAll('col.day').forEach(c => c.remove());
-  Array.from(monthRow.children).forEach(th => { if(!th.classList.contains('head-static')) th.remove(); });
+  monthRow.innerHTML = '';
   dayNumRow.innerHTML = '';
   dayDateRow.innerHTML = '';
 
@@ -1185,6 +1237,17 @@ function buildDayHeaders(){
     dayDateRow.appendChild(thDate);
   }
 
+  // empty spacer cells in the days-table's group-row, purely so its height
+  // matches the fixed-table's group-row (no content, never painted/clicked)
+  if(groupDaysRow){
+    groupDaysRow.innerHTML = '';
+    for(let i=1;i<=TOTAL_DAYS;i++){
+      const td = document.createElement('td');
+      td.className = 'day-cell';
+      groupDaysRow.appendChild(td);
+    }
+  }
+
   const calStartEl = document.getElementById('calStart');
   const calDaysEl = document.getElementById('calDays');
   if(calStartEl) calStartEl.value = fmtISO(START_DATE);
@@ -1193,40 +1256,52 @@ function buildDayHeaders(){
 
 buildDayHeaders();
 
-/* ---------------- BUILD ROWS ---------------- */
+/* ---------------- BUILD ROWS ----------------
+   Each task has TWO <tr> elements — one in the fixed table (No/Description/
+   Ratio/Progress/Work Progress), one in the scrolling days table (the paint-
+   able day cells) — linked by a matching data-no attribute. */
+const fixedBody = document.getElementById('ganttFixedBody');
 const tbody = document.getElementById('ganttBody');
 
 function makeRow(row){
-  const tr = document.createElement('tr');
-  tr.dataset.no = row.no;
+  const fixedTr = document.createElement('tr');
+  fixedTr.dataset.no = row.no;
 
   const wpNum = pctToNum(row.wp);
   const ratioNum = pctToNum(row.ratio);
   const progNum = Math.round(ratioNum * wpNum / 100);
   const editable = READ_ONLY ? 'false' : 'true';
 
-  tr.innerHTML = `
-    <td class="sticky no">
+  fixedTr.innerHTML = `
+    <td class="no">
       <span class="cell-edit" contenteditable="${editable}" style="display:inline-block;padding:8px 4px;">${row.no}</span>
       <span class="del-row" title="ลบแถวนี้">✕</span>
     </td>
-    <td class="sticky desc"><span class="cell-edit" contenteditable="${editable}">${row.desc}</span></td>
-    <td class="sticky ratio"><span class="cell-edit ratio-val" contenteditable="${editable}">${row.ratio}</span></td>
-    <td class="sticky prog"><span class="prog-val" title="คำนวณอัตโนมัติ = Ratio × Work Progress">${progNum}%</span></td>
-    <td class="sticky wp">
+    <td class="desc"><span class="cell-edit" contenteditable="${editable}">${row.desc}</span></td>
+    <td class="ratio"><span class="cell-edit ratio-val" contenteditable="${editable}">${row.ratio}</span></td>
+    <td class="prog"><span class="prog-val" title="คำนวณอัตโนมัติ = Ratio × Work Progress">${progNum}%</span></td>
+    <td class="wp">
       <div class="wp-track"><div class="wp-fill" style="width:${wpNum}%"></div></div>
       <div class="wp-text cell-edit" contenteditable="${editable}">${wpNum}%</div>
     </td>
   `;
 
-  rebuildRowDays(tr, row.cells, row);
+  const daysTr = document.createElement('tr');
+  daysTr.dataset.no = row.no;
+  rebuildRowDays(daysTr, row.cells, row);
 
-  tr.querySelector('.del-row').addEventListener('click', ()=>{
+  fixedTr.querySelector('.del-row').addEventListener('click', ()=>{
     if(READ_ONLY) return;
-    if(confirm('ลบงานนี้ออกจากตารางใช่หรือไม่?')){ tr.remove(); recalcOverall(); save(); }
+    if(confirm('ลบงานนี้ออกจากตารางใช่หรือไม่?')){
+      fixedTr.remove();
+      daysTr.remove();
+      recalcOverall();
+      save();
+    }
   });
 
-  return tr;
+  fixedBody.appendChild(fixedTr);
+  tbody.appendChild(daysTr);
 }
 
 /* Build/rebuild the day-cell <td>s for a row against the current TOTAL_DAYS.
@@ -1257,7 +1332,7 @@ function rebuildRowDays(tr, cells, rangeRow){
 }
 
 /* Recompute a row's Progress (= Ratio × Work Progress ÷ 100) and the WP bar,
-   then roll everything up into the overall gauge. */
+   then roll everything up into the overall gauge. `tr` here is the fixed-table row. */
 function updateRowCalc(tr){
   if(READ_ONLY) return;
   const ratio = pctToNum(tr.querySelector('.ratio-val').textContent);
@@ -1299,7 +1374,7 @@ document.querySelectorAll('.chip').forEach(chip=>{
 document.getElementById('addRow').addEventListener('click', ()=>{
   const maxNo = Math.max(0, ...Array.from(tbody.querySelectorAll('tr[data-no]')).map(r=>+r.dataset.no || 0));
   const newRow = {no:maxNo+1, desc:"New Task", ratio:"0%", prog:"0%", wp:"0%", start:0, len:0, color:selectedColor};
-  tbody.appendChild(makeRow(newRow));
+  makeRow(newRow);
   recalcOverall();
   save();
 });
@@ -1408,14 +1483,18 @@ function encodeCells(cells){ return cells.map(c => c || '').join('|'); }
 function decodeCells(str){ return (str || '').split('|').map(s => s || null); }
 
 function serialize(){
-  const rows = Array.from(tbody.querySelectorAll('tr[data-no]')).map(tr=>{
-    const cells = Array.from(tr.querySelectorAll('td.day-cell')).map(td => td.dataset.painted || null);
+  const rows = Array.from(fixedBody.querySelectorAll('tr[data-no]')).map(fixedTr=>{
+    const no = fixedTr.querySelector('.no .cell-edit').textContent.trim();
+    const daysTr = tbody.querySelector('tr[data-no="'+CSS.escape(fixedTr.dataset.no)+'"]');
+    const cells = daysTr
+      ? Array.from(daysTr.querySelectorAll('td.day-cell')).map(td => td.dataset.painted || null)
+      : [];
     return {
-      no: tr.querySelector('.no .cell-edit').textContent.trim(),
-      desc: tr.querySelector('.desc .cell-edit').textContent.trim(),
-      ratio: tr.querySelector('.ratio-val').textContent.trim(),
-      prog: tr.querySelector('.prog-val').textContent.trim(),
-      wp: tr.querySelector('.wp-text').textContent.trim(),
+      no: no,
+      desc: fixedTr.querySelector('.desc .cell-edit').textContent.trim(),
+      ratio: fixedTr.querySelector('.ratio-val').textContent.trim(),
+      prog: fixedTr.querySelector('.prog-val').textContent.trim(),
+      wp: fixedTr.querySelector('.wp-text').textContent.trim(),
       cells: encodeCells(cells)
     };
   });
@@ -1481,8 +1560,9 @@ function applyData(data){
   document.getElementById('tlDetail').style.display = 'none';
   openDetailKey = null;
 
+  fixedBody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
   tbody.querySelectorAll('tr[data-no]').forEach(tr => tr.remove());
-  (data.rows || []).forEach(r => tbody.appendChild(makeRow({...r, cells: decodeCells(r.cells)})));
+  (data.rows || []).forEach(r => makeRow({...r, cells: decodeCells(r.cells)}));
   buildTimeline();
 
   recalcOverall();
@@ -1665,7 +1745,7 @@ async function init(){
     return;
   }
   // fall back to the default template (staff, first run)
-  ROWS.forEach(r => tbody.appendChild(makeRow(r)));
+  ROWS.forEach(r => makeRow(r));
   recalcOverall();
   buildTimeline();
   setCurrentJobLabel();
