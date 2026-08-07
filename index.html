@@ -1447,13 +1447,19 @@ try{
 /* ================= NAMED JOB SLOTS (Firebase-backed persistence) ================= */
 const JOBS_PATH = 'schedule-jobs';       // published — what client `?job=` links read
 const DRAFTS_PATH = 'schedule-drafts';   // private staff draft — autosaved as you type
-let CURRENT_KEY = 'J1572';
+const LAST_JOB_PATH = 'meta/lastActiveJob'; // remembers which job staff last worked on
+let CURRENT_KEY = 'J1572'; // fallback only — overwritten on init() by LAST_JOB_PATH if available
 
 function sanitizeKey(name){
   return name.trim().replace(/\s+/g,'-').replace(/[.#$\/\[\]'"]/g,'');
 }
 function jobPath(k){ return JOBS_PATH + '/' + k; }
 function draftPath(k){ return DRAFTS_PATH + '/' + k; }
+
+async function rememberLastJob(key){
+  if(!hasStorage) return;
+  try{ await db.ref(LAST_JOB_PATH).set(key); }catch(err){ /* best-effort */ }
+}
 
 function setCurrentJobLabel(){
   const el = document.getElementById('currentJobLabel');
@@ -1685,6 +1691,7 @@ document.getElementById('saveAsBtn').addEventListener('click', async ()=>{
 
   CURRENT_KEY = key;
   await publishNow(); // brand-new job: publish immediately so its QR/link works right away
+  await rememberLastJob(key);
   setCurrentJobLabel();
   nameInput.value = '';
   refreshSavedList();
@@ -1705,6 +1712,7 @@ document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
       applyData(snap.val());
       setCurrentJobLabel();
       setPublishState(fromDraft);
+      await rememberLastJob(key);
     }else{
       alert('ไม่พบข้อมูลของไฟล์งานนี้');
     }
@@ -1714,6 +1722,15 @@ document.getElementById('loadSavedBtn').addEventListener('click', async ()=>{
 });
 
 async function init(){
+  if(hasStorage && !READ_ONLY){
+    // resume whichever job was last worked on, shared across staff/devices
+    try{
+      const lastSnap = await db.ref(LAST_JOB_PATH).once('value');
+      if(lastSnap.exists() && lastSnap.val()){
+        CURRENT_KEY = lastSnap.val();
+      }
+    }catch(err){ /* none recorded yet — fall back to hardcoded default */ }
+  }
   if(hasStorage && !READ_ONLY){
     // staff: resume the private draft if one exists (keeps unpublished edits across reloads)
     try{
@@ -1750,6 +1767,7 @@ async function init(){
   buildTimeline();
   setCurrentJobLabel();
   await publishNow(); // first-ever run: publish the starting template right away
+  await rememberLastJob(CURRENT_KEY);
   refreshSavedList();
 }
 
