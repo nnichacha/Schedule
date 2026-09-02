@@ -209,15 +209,20 @@
   .legend{display:flex; gap:16px; flex-wrap:wrap; align-items:center;}
   .chip{
     display:flex; align-items:center; gap:6px;
-    padding:3px 4px 3px 2px;
+    padding:4px 10px 4px 6px;
     font-size:12px; font-weight:500;
     cursor:pointer;
-    border-bottom:2px solid transparent;
+    border:1.5px solid transparent;
+    border-radius:20px;
     user-select:none;
     color:var(--ink);
   }
   .chip .sw{width:11px;height:11px;border-radius:2px;flex:none;}
-  .chip.active{border-bottom-color:var(--ink); font-weight:600;}
+  .chip.active{
+    border-color:var(--ink);
+    background:var(--row-alt);
+    font-weight:700;
+  }
   .chip .lbl{outline:none;}
   .chip.erase{color:var(--steel-light); font-style:italic;}
 
@@ -894,6 +899,7 @@
           <option value="done">เสร็จสิ้น</option>
         </select>
         <span class="status-time" id="statusTime">อัปเดตล่าสุด 01/08/2026 14:21</span>
+        <span class="client-badge">มุมมองลูกค้า (อ่านอย่างเดียว)</span>
       </div>
     </div>
 
@@ -1360,9 +1366,8 @@ function paintCell(td){
 
 /* ---------------- LEGEND SELECT ---------------- */
 document.querySelectorAll('.chip').forEach(chip=>{
-  chip.addEventListener('click', (e)=>{
+  chip.addEventListener('click', ()=>{
     if(READ_ONLY) return;
-    if(e.target.classList.contains('lbl')) return;
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active');
     selectedColor = chip.dataset.color;
